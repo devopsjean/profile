@@ -162,11 +162,20 @@ function SidebarTree({
 
 function ProfilePage() {
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null)
+  const [timelineJumpItemId, setTimelineJumpItemId] = useState<string | null>(null)
 
   const handleSelectTimelineItem = (itemId: string) => {
     setSelectedItemId(itemId)
     requestAnimationFrame(() => {
       document.getElementById(`detail-row-${itemId}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    })
+  }
+
+  const handleTableDoubleClick = (itemId: string) => {
+    setSelectedItemId(itemId)
+    setTimelineJumpItemId(itemId)
+    requestAnimationFrame(() => {
+      document.getElementById('timeline-section')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
     })
   }
 
@@ -180,11 +189,16 @@ function ProfilePage() {
       </article>
 
       <article id="timeline-section" className="doc-card dashboard-timeline">
-        <ExperienceTimelineBoard items={experiences} onSelectItem={handleSelectTimelineItem} selectedItemId={selectedItemId} />
+        <ExperienceTimelineBoard
+          items={experiences}
+          onSelectItem={handleSelectTimelineItem}
+          selectedItemId={selectedItemId}
+          jumpToItemId={timelineJumpItemId}
+        />
       </article>
 
       <article id="timetable-section" className="doc-card dashboard-table">
-        <ExperienceChartTable items={experiences} selectedItemId={selectedItemId} />
+        <ExperienceChartTable items={experiences} selectedItemId={selectedItemId} onDoubleClickItem={handleTableDoubleClick} />
       </article>
     </section>
   )
@@ -194,15 +208,18 @@ function ExperienceTimelineBoard({
   items,
   onSelectItem,
   selectedItemId,
+  jumpToItemId,
 }: {
   items: TimelineItem[]
   onSelectItem: (itemId: string) => void
   selectedItemId: string | null
+  jumpToItemId: string | null
 }) {
   const scrollRef = useRef<HTMLDivElement>(null)
   const [mode, setMode] = useState<TimelineMode>('fit')
   const [quarterWidth, setQuarterWidth] = useState(58)
   const [scrollLeft, setScrollLeft] = useState(0)
+  const [viewportWidth, setViewportWidth] = useState(0)
 
   const ordered = useMemo(() => items.slice().sort((a, b) => a.start.localeCompare(b.start)), [items])
   const baseRange = useMemo(() => {
@@ -270,11 +287,27 @@ function ExperienceTimelineBoard({
     const node = scrollRef.current
     if (!node) return
 
-    const syncScroll = () => setScrollLeft(node.scrollLeft)
+    const syncScroll = () => {
+      setScrollLeft(node.scrollLeft)
+      setViewportWidth(node.clientWidth)
+    }
     syncScroll()
     node.addEventListener('scroll', syncScroll, { passive: true })
-    return () => node.removeEventListener('scroll', syncScroll)
+    window.addEventListener('resize', syncScroll)
+    return () => {
+      node.removeEventListener('scroll', syncScroll)
+      window.removeEventListener('resize', syncScroll)
+    }
   }, [])
+
+  useEffect(() => {
+    if (!jumpToItemId || !scrollRef.current) return
+    const target = ordered.find((item) => item.id === jumpToItemId)
+    if (!target) return
+    const s = quarterIndexFromModel(new Date(target.start), model.minYear)
+    const e = quarterIndexFromModel(new Date(target.end), model.minYear)
+    scrollToQuarter((s + e) / 2, quarterWidth)
+  }, [jumpToItemId, model.minYear, ordered, quarterWidth])
 
   return (
     <>
@@ -322,6 +355,7 @@ function ExperienceTimelineBoard({
               const widthPx = Math.max((end - start + 1) * quarterWidth - 4, 86)
               const topPx = idx * 42 + 8
               const hasPastOverflow = leftPx < scrollLeft + 2
+              const hasFutureOverflow = leftPx + widthPx > scrollLeft + viewportWidth - 2
 
               return (
                 <div key={item.id}>
@@ -334,6 +368,17 @@ function ExperienceTimelineBoard({
                       style={{ top: `${topPx + 4}px`, left: `${scrollLeft + 6}px` }}
                     >
                       ←
+                    </button>
+                  )}
+                  {hasFutureOverflow && (
+                    <button
+                      className="timeline-overflow-arrow right"
+                      type="button"
+                      onClick={() => onSelectItem(item.id)}
+                      title={`Future segment exists: ${item.group} ${item.title}`}
+                      style={{ top: `${topPx + 4}px`, left: `${Math.max(scrollLeft + viewportWidth - 28, scrollLeft + 6)}px` }}
+                    >
+                      →
                     </button>
                   )}
                   <button
@@ -357,7 +402,15 @@ function ExperienceTimelineBoard({
   )
 }
 
-function ExperienceChartTable({ items, selectedItemId }: { items: TimelineItem[]; selectedItemId: string | null }) {
+function ExperienceChartTable({
+  items,
+  selectedItemId,
+  onDoubleClickItem,
+}: {
+  items: TimelineItem[]
+  selectedItemId: string | null
+  onDoubleClickItem: (itemId: string) => void
+}) {
   return (
     <>
       <h3>Experience Timetable</h3>
@@ -373,7 +426,13 @@ function ExperienceChartTable({ items, selectedItemId }: { items: TimelineItem[]
           </thead>
           <tbody>
             {items.map((item) => (
-              <tr id={`detail-row-${item.id}`} key={item.id} className={selectedItemId === item.id ? 'selected-row' : ''}>
+              <tr
+                id={`detail-row-${item.id}`}
+                key={item.id}
+                className={selectedItemId === item.id ? 'selected-row' : ''}
+                onDoubleClick={() => onDoubleClickItem(item.id)}
+                title="Double-click to move to timeline block"
+              >
                 <td>
                   <div className="title-main">{item.group}</div>
                   <div className="title-sub">{item.title}</div>
