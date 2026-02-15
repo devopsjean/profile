@@ -202,6 +202,7 @@ function ExperienceTimelineBoard({
   const scrollRef = useRef<HTMLDivElement>(null)
   const [mode, setMode] = useState<TimelineMode>('fit')
   const [quarterWidth, setQuarterWidth] = useState(58)
+  const [scrollLeft, setScrollLeft] = useState(0)
 
   const ordered = useMemo(() => items.slice().sort((a, b) => a.start.localeCompare(b.start)), [items])
   const baseRange = useMemo(() => {
@@ -221,6 +222,7 @@ function ExperienceTimelineBoard({
   const rowsHeight = ordered.length * 42 + 20
   const currentQuarterIndex = quarterIndexFromModel(new Date(), model.minYear)
   const canvasWidth = model.totalQuarters * quarterWidth
+  const nowX = quarterPositionFromModel(new Date(), model.minYear) * quarterWidth
 
   const scrollToQuarter = (quarter: number, width: number) => {
     if (!scrollRef.current) return
@@ -264,6 +266,16 @@ function ExperienceTimelineBoard({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  useEffect(() => {
+    const node = scrollRef.current
+    if (!node) return
+
+    const syncScroll = () => setScrollLeft(node.scrollLeft)
+    syncScroll()
+    node.addEventListener('scroll', syncScroll, { passive: true })
+    return () => node.removeEventListener('scroll', syncScroll)
+  }, [])
+
   return (
     <>
       <div className="section-head">
@@ -299,30 +311,43 @@ function ExperienceTimelineBoard({
           </div>
 
           <div className="timeline-body" style={{ minHeight: `${rowsHeight}px` }}>
+            <div className="timeline-now-line" style={{ left: `${nowX}px` }} aria-hidden />
             {ordered.map((item, idx) => {
               const s = quarterIndexFromModel(new Date(item.start), model.minYear)
               const e = quarterIndexFromModel(new Date(item.end), model.minYear)
               const start = Math.max(s, 0)
               const end = Math.min(e, model.totalQuarters - 1)
               if (end < 0 || start >= model.totalQuarters) return null
+              const leftPx = start * quarterWidth + 2
+              const widthPx = Math.max((end - start + 1) * quarterWidth - 4, 86)
+              const topPx = idx * 42 + 8
+              const hasPastOverflow = leftPx < scrollLeft + 2
 
               return (
-                <button
-                  className={`timeline-pill ${selectedItemId === item.id ? 'active' : ''}`}
-                  key={item.id}
-                  type="button"
-                  title={`${item.title} (${item.start} - ${item.end})`}
-                  onClick={() => onSelectItem(item.id)}
-                  style={{
-                    top: `${idx * 42 + 8}px`,
-                    left: `calc((${start} / var(--quarters)) * 100% + 2px)`,
-                    width: `max(calc(((${end - start + 1}) / var(--quarters)) * 100% - 4px), 86px)`,
-                  }}
-                >
-                  <span className="timeline-pill-label">
-                    {item.group} {item.title}
-                  </span>
-                </button>
+                <div key={item.id}>
+                  {hasPastOverflow && (
+                    <button
+                      className="timeline-overflow-arrow"
+                      type="button"
+                      onClick={() => onSelectItem(item.id)}
+                      title={`Earlier segment exists: ${item.group} ${item.title}`}
+                      style={{ top: `${topPx + 4}px`, left: `${scrollLeft + 6}px` }}
+                    >
+                      ←
+                    </button>
+                  )}
+                  <button
+                    className={`timeline-pill ${selectedItemId === item.id ? 'active' : ''}`}
+                    type="button"
+                    title={`${item.title} (${item.start} - ${item.end})`}
+                    onClick={() => onSelectItem(item.id)}
+                    style={{ top: `${topPx}px`, left: `${leftPx}px`, width: `${widthPx}px` }}
+                  >
+                    <span className="timeline-pill-label">
+                      {item.group} {item.title}
+                    </span>
+                  </button>
+                </div>
               )
             })}
           </div>
@@ -433,6 +458,13 @@ function resolveReadmeUrl(
 
 function quarterIndexFromModel(date: Date, minYear: number) {
   return (date.getFullYear() - minYear) * 4 + Math.floor(date.getMonth() / 3)
+}
+
+function quarterPositionFromModel(date: Date, minYear: number) {
+  const monthsFromMin = (date.getFullYear() - minYear) * 12 + date.getMonth()
+  const daysInMonth = new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate()
+  const monthProgress = (date.getDate() - 1) / daysInMonth
+  return (monthsFromMin + monthProgress) / 3
 }
 
 function normalizeSlug(slug: string) {
