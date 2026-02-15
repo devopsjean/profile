@@ -4,7 +4,7 @@ import navData from './content/nav.json'
 import profileData from './content/profile.json'
 import timelineData from './content/timeline.json'
 
-type NavFolder = { title: string; type: 'folder'; children: NavNode[] }
+type NavFolder = { title: string; type: 'folder'; slug?: string; children: NavNode[] }
 type NavPage = { title: string; type: 'page'; slug: string }
 type NavAnchor = { title: string; type: 'anchor'; slug: string; targetId: string }
 type NavNode = NavFolder | NavPage | NavAnchor
@@ -41,7 +41,7 @@ function Workspace() {
   const { slug = 'profile' } = useParams<{ slug: string }>()
   const navigate = useNavigate()
   const normalizedSlug = normalizeSlug(slug)
-  const defaultMenuId = slug === 'experience-timeline' ? 'Profile/Timeline' : slug === 'experience-chart' ? 'Profile/Timetable' : 'Profile/Profile'
+  const defaultMenuId = slug === 'experience-timeline' ? 'Profile/Timeline' : slug === 'experience-chart' ? 'Profile/Timetable' : 'Profile'
   const [activeMenuId, setActiveMenuId] = useState(defaultMenuId)
   const [theme, setTheme] = useState<ThemeMode>(() => {
     const stored = window.localStorage.getItem('profile-theme')
@@ -119,7 +119,14 @@ function SidebarTree({
       const open = openFolders[path] ?? false
       return (
         <li key={path}>
-          <button className="tree-folder" type="button" onClick={() => toggleFolder(path)}>
+          <button
+            className={`tree-folder ${activeMenuId === path ? 'active' : ''}`}
+            type="button"
+            onClick={() => {
+              if (node.slug) onMenuAction({ title: node.title, type: 'page', slug: node.slug }, path)
+              else toggleFolder(path)
+            }}
+          >
             <span className="chevron">{open ? '▾' : '▸'}</span>
             {node.title}
           </button>

@@ -2,8 +2,8 @@
   {
     "title": "Profile",
     "type": "folder",
+    "slug": "profile",
     "children": [
-      { "title": "Profile", "type": "page", "slug": "profile" },
       { "title": "Timeline", "type": "anchor", "slug": "profile", "targetId": "timeline-section" },
       { "title": "Timetable", "type": "anchor", "slug": "profile", "targetId": "timetable-section" }
     ]
