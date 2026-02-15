@@ -167,11 +167,10 @@ function ExperienceTimelineBoard({
   selectedItemId: string | null
 }) {
   const scrollRef = useRef<HTMLDivElement>(null)
-  const [quarterWidth, setQuarterWidth] = useState(58)
   const [mode, setMode] = useState<TimelineMode>('multi-year')
 
   const ordered = useMemo(() => items.slice().sort((a, b) => a.start.localeCompare(b.start)), [items])
-  const dataModel = useMemo(() => {
+  const dataRange = useMemo(() => {
     const minDate = new Date(Math.min(...ordered.map((item) => new Date(item.start).getTime())))
     const maxDate = new Date(Math.max(...ordered.map((item) => new Date(item.end).getTime())))
     const minYear = minDate.getFullYear()
@@ -181,39 +180,27 @@ function ExperienceTimelineBoard({
 
   const model = useMemo(() => {
     const currentYear = new Date().getFullYear()
-    const displayMaxYear =
-      mode === 'multi-year'
-        ? Math.max(dataModel.maxYear, currentYear + 2)
-        : Math.max(dataModel.maxYear, currentYear)
+    if (mode === 'today') {
+      const minYear = currentYear - 2
+      const maxYear = currentYear + 2
+      return { minYear, maxYear, totalQuarters: (maxYear - minYear + 1) * 4 }
+    }
+    if (mode === 'fit') {
+      const minYear = dataRange.minYear
+      const maxYear = dataRange.maxYear
+      return { minYear, maxYear, totalQuarters: (maxYear - minYear + 1) * 4 }
+    }
+    const minYear = dataRange.minYear
+    const maxYear = Math.max(dataRange.maxYear, currentYear + 2)
+    return { minYear, maxYear, totalQuarters: (maxYear - minYear + 1) * 4 }
+  }, [dataRange, mode])
 
-    const totalQuarters = (displayMaxYear - dataModel.minYear + 1) * 4
-    return { minYear: dataModel.minYear, maxYear: displayMaxYear, totalQuarters }
-  }, [dataModel, mode])
-
-  const canvasWidth = model.totalQuarters * quarterWidth
   const rowsHeight = ordered.length * 48 + 28
+  const currentQuarterIndex = quarterIndexFromModel(new Date(), model.minYear)
 
-  const quarterIndex = (date: Date) => (date.getFullYear() - model.minYear) * 4 + Math.floor(date.getMonth() / 3)
-
-  const setFit = () => {
-    const viewport = scrollRef.current?.clientWidth ?? 1200
-    const fit = Math.floor(viewport / model.totalQuarters)
-    setQuarterWidth(Math.max(26, Math.min(72, fit)))
-    setMode('fit')
-  }
-
-  const setToday = () => {
-    if (!scrollRef.current) return
-    const today = quarterIndex(new Date())
-    const target = today * quarterWidth - scrollRef.current.clientWidth / 2
-    scrollRef.current.scrollTo({ left: Math.max(target, 0), behavior: 'smooth' })
-    setMode('today')
-  }
-
-  const setMultiYear = () => {
-    setQuarterWidth(58)
-    setMode('multi-year')
-  }
+  const setFit = () => setMode('fit')
+  const setToday = () => setMode('today')
+  const setMultiYear = () => setMode('multi-year')
 
   return (
     <article className="doc-card">
@@ -233,31 +220,38 @@ function ExperienceTimelineBoard({
       </div>
 
       <div className="timeline-panel" ref={scrollRef}>
-        <div className="timeline-inner" style={{ width: `${canvasWidth}px`, '--q-width': `${quarterWidth}px` } as CSSProperties}>
+        <div className="timeline-inner" style={{ '--quarters': `${model.totalQuarters}` } as CSSProperties}>
           <div className="timeline-sticky">
             <div className="timeline-years">
               {Array.from({ length: model.maxYear - model.minYear + 1 }).map((_, i) => {
                 const year = model.minYear + i
                 return (
-                  <div key={year} style={{ width: `${quarterWidth * 4}px` }}>
+                  <div key={year}>
                     {year}
                   </div>
                 )
               })}
             </div>
             <div className="timeline-quarters">
-              {Array.from({ length: model.totalQuarters }).map((_, i) => (
-                <span key={`q-${model.minYear}-${i}`}>{(i % 4) + 1}</span>
-              ))}
+              {Array.from({ length: model.totalQuarters }).map((_, i) => {
+                const isCurrent = i === currentQuarterIndex
+                return (
+                  <span className={isCurrent ? 'current-quarter' : ''} key={`q-${model.minYear}-${i}`}>
+                    {(i % 4) + 1}
+                  </span>
+                )
+              })}
             </div>
           </div>
 
           <div className="timeline-body" style={{ minHeight: `${rowsHeight}px` }}>
             {ordered.map((item, idx) => {
-              const s = quarterIndex(new Date(item.start))
-              const e = quarterIndex(new Date(item.end))
-              const left = s * quarterWidth + 2
-              const width = Math.max((e - s + 1) * quarterWidth - 4, 92)
+              const s = quarterIndexFromModel(new Date(item.start), model.minYear)
+              const e = quarterIndexFromModel(new Date(item.end), model.minYear)
+              const start = Math.max(s, 0)
+              const end = Math.min(e, model.totalQuarters - 1)
+              if (end < 0 || start >= model.totalQuarters) return null
+
               return (
                 <button
                   className={`timeline-pill ${selectedItemId === item.id ? 'active' : ''}`}
@@ -265,7 +259,11 @@ function ExperienceTimelineBoard({
                   type="button"
                   title={`${item.title} (${item.start} - ${item.end})`}
                   onClick={() => onSelectItem(item.id)}
-                  style={{ left: `${left}px`, top: `${idx * 48 + 10}px`, width: `${width}px` }}
+                  style={{
+                    top: `${idx * 48 + 10}px`,
+                    left: `calc((${start} / var(--quarters)) * 100% + 2px)`,
+                    width: `max(calc(((${end - start + 1}) / var(--quarters)) * 100% - 4px), 92px)`,
+                  }}
                 >
                   {item.group} {item.title}
                 </button>
@@ -289,7 +287,7 @@ function ExperienceChartTable({ items, selectedItemId }: { items: TimelineItem[]
               <th>Title</th>
               <th>Start Date</th>
               <th>End Date</th>
-              <th>설명</th>
+              <th>Description</th>
             </tr>
           </thead>
           <tbody>
@@ -309,6 +307,10 @@ function ExperienceChartTable({ items, selectedItemId }: { items: TimelineItem[]
       </div>
     </article>
   )
+}
+
+function quarterIndexFromModel(date: Date, minYear: number) {
+  return (date.getFullYear() - minYear) * 4 + Math.floor(date.getMonth() / 3)
 }
 
 function ResumePage() {
