@@ -168,9 +168,10 @@ function ExperienceTimelineBoard({
 }) {
   const scrollRef = useRef<HTMLDivElement>(null)
   const [mode, setMode] = useState<TimelineMode>('multi-year')
+  const [quarterWidth, setQuarterWidth] = useState(58)
 
   const ordered = useMemo(() => items.slice().sort((a, b) => a.start.localeCompare(b.start)), [items])
-  const dataRange = useMemo(() => {
+  const baseRange = useMemo(() => {
     const minDate = new Date(Math.min(...ordered.map((item) => new Date(item.start).getTime())))
     const maxDate = new Date(Math.max(...ordered.map((item) => new Date(item.end).getTime())))
     const minYear = minDate.getFullYear()
@@ -180,27 +181,56 @@ function ExperienceTimelineBoard({
 
   const model = useMemo(() => {
     const currentYear = new Date().getFullYear()
-    if (mode === 'today') {
-      const minYear = currentYear - 2
-      const maxYear = currentYear + 2
-      return { minYear, maxYear, totalQuarters: (maxYear - minYear + 1) * 4 }
-    }
-    if (mode === 'fit') {
-      const minYear = dataRange.minYear
-      const maxYear = dataRange.maxYear
-      return { minYear, maxYear, totalQuarters: (maxYear - minYear + 1) * 4 }
-    }
-    const minYear = dataRange.minYear
-    const maxYear = Math.max(dataRange.maxYear, currentYear + 2)
+    const minYear = Math.min(baseRange.minYear, currentYear) - 20
+    const maxYear = Math.max(baseRange.maxYear, currentYear) + 20
     return { minYear, maxYear, totalQuarters: (maxYear - minYear + 1) * 4 }
-  }, [dataRange, mode])
+  }, [baseRange])
+
+  const dataQuarters = useMemo(
+    () => (baseRange.maxYear - baseRange.minYear + 1) * 4,
+    [baseRange.maxYear, baseRange.minYear],
+  )
 
   const rowsHeight = ordered.length * 48 + 28
   const currentQuarterIndex = quarterIndexFromModel(new Date(), model.minYear)
+  const canvasWidth = model.totalQuarters * quarterWidth
 
-  const setFit = () => setMode('fit')
-  const setToday = () => setMode('today')
-  const setMultiYear = () => setMode('multi-year')
+  const scrollToQuarter = (quarter: number, width: number) => {
+    if (!scrollRef.current) return
+    const viewport = scrollRef.current.clientWidth
+    const target = quarter * width - viewport / 2
+    scrollRef.current.scrollTo({ left: Math.max(target, 0), behavior: 'smooth' })
+  }
+
+  const setMultiYear = () => {
+    const width = 58
+    setQuarterWidth(width)
+    setMode('multi-year')
+    requestAnimationFrame(() => {
+      const firstDataQuarter = quarterIndexFromModel(new Date(`${baseRange.minYear}-01-01`), model.minYear)
+      scrollToQuarter(firstDataQuarter, width)
+    })
+  }
+
+  const setToday = () => {
+    const width = 58
+    setQuarterWidth(width)
+    setMode('today')
+    requestAnimationFrame(() => scrollToQuarter(currentQuarterIndex, width))
+  }
+
+  const setFit = () => {
+    const viewport = scrollRef.current?.clientWidth ?? 1200
+    const fit = Math.floor(viewport / dataQuarters)
+    const width = Math.max(24, Math.min(140, fit))
+    setQuarterWidth(width)
+    setMode('fit')
+    requestAnimationFrame(() => {
+      const dataStartQuarter = quarterIndexFromModel(new Date(`${baseRange.minYear}-01-01`), model.minYear)
+      const centerQuarter = dataStartQuarter + dataQuarters / 2
+      scrollToQuarter(centerQuarter, width)
+    })
+  }
 
   return (
     <article className="doc-card">
@@ -220,7 +250,10 @@ function ExperienceTimelineBoard({
       </div>
 
       <div className="timeline-panel" ref={scrollRef}>
-        <div className="timeline-inner" style={{ '--quarters': `${model.totalQuarters}` } as CSSProperties}>
+        <div
+          className="timeline-inner"
+          style={{ '--quarters': `${model.totalQuarters}`, '--q-width': `${quarterWidth}px`, width: `${canvasWidth}px` } as CSSProperties}
+        >
           <div className="timeline-sticky">
             <div className="timeline-years">
               {Array.from({ length: model.maxYear - model.minYear + 1 }).map((_, i) => {
@@ -265,7 +298,9 @@ function ExperienceTimelineBoard({
                     width: `max(calc(((${end - start + 1}) / var(--quarters)) * 100% - 4px), 92px)`,
                   }}
                 >
-                  {item.group} {item.title}
+                  <span className="timeline-pill-label">
+                    {item.group} {item.title}
+                  </span>
                 </button>
               )
             })}
