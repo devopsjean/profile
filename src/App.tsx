@@ -258,19 +258,22 @@ function ExperienceTimelineBoard({
     return nearestIndex
   }, [model.minYear, ordered])
 
-  const scrollToQuarter = (quarter: number, width: number) => {
-    if (!scrollRef.current) return
+  const scrollToQuarter = (quarter: number, width: number, behavior: ScrollBehavior = 'smooth') => {
+    if (!scrollRef.current) return 0
     const viewport = scrollRef.current.clientWidth
-    scrollRef.current.scrollTo({ left: Math.max(quarter * width - viewport / 2, 0), behavior: 'smooth' })
+    const targetLeft = Math.max(quarter * width - viewport / 2, 0)
+    scrollRef.current.scrollTo({ left: targetLeft, top: scrollRef.current.scrollTop, behavior })
+    return targetLeft
   }
 
-  const focusNearestEventRow = () => {
+  const focusNearestEventRow = (fixedLeft?: number) => {
     const node = scrollRef.current
     if (!node || nearestEventRowIndex < 0) return
     const stickyHeight = (node.querySelector('.timeline-sticky') as HTMLElement | null)?.offsetHeight ?? 64
     const targetTop = nearestEventRowIndex * 42 + 8
     node.scrollTo({
       top: Math.max(targetTop - stickyHeight - 10, 0),
+      left: fixedLeft ?? node.scrollLeft,
       behavior: 'smooth',
     })
   }
@@ -301,8 +304,8 @@ function ExperienceTimelineBoard({
     requestAnimationFrame(() => {
       const start = quarterIndexFromModel(new Date(`${baseRange.minYear}-01-01`), model.minYear)
       const end = quarterIndexFromModel(new Date(`${baseRange.maxYear}-12-31`), model.minYear)
-      scrollToQuarter((start + end) / 2, width)
-      requestAnimationFrame(() => focusNearestEventRow())
+      const fitLeft = scrollToQuarter((start + end) / 2, width, 'auto')
+      requestAnimationFrame(() => focusNearestEventRow(fitLeft))
     })
   }
 
