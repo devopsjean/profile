@@ -346,17 +346,20 @@ function ExperienceTimelineBoard({
           <div className="timeline-body" style={{ minHeight: `${rowsHeight}px` }}>
             <div className="timeline-now-line" style={{ left: `${nowX}px` }} aria-hidden />
             {ordered.map((item, idx) => {
-              const s = quarterIndexFromModel(new Date(item.start), model.minYear)
-              const e = quarterIndexFromModel(new Date(item.end), model.minYear)
-              const start = Math.max(s, 0)
-              const end = Math.min(e, model.totalQuarters - 1)
-              if (end < 0 || start >= model.totalQuarters) return null
-              const leftPx = start * quarterWidth + 2
-              const widthPx = Math.max((end - start + 1) * quarterWidth - 4, 86)
+              const startPos = quarterPositionFromModel(new Date(item.start), model.minYear)
+              const endPos = quarterPositionFromModel(addDays(new Date(item.end), 1), model.minYear)
+              const clampedStart = Math.max(startPos, 0)
+              const clampedEnd = Math.min(endPos, model.totalQuarters)
+              if (clampedEnd <= 0 || clampedStart >= model.totalQuarters || clampedEnd <= clampedStart) return null
+
+              const rawLeftPx = startPos * quarterWidth + 2
+              const rawRightPx = endPos * quarterWidth - 2
+              const leftPx = clampedStart * quarterWidth + 2
+              const widthPx = Math.max((clampedEnd - clampedStart) * quarterWidth - 4, 12)
               const topPx = idx * 42 + 8
-              const hasPastOverflow = leftPx < scrollLeft + 2
-              const hasFutureOverflow = leftPx + widthPx > scrollLeft + viewportWidth - 2
-              const hasViewportOverlap = leftPx + widthPx > scrollLeft && leftPx < scrollLeft + viewportWidth
+              const hasPastOverflow = rawLeftPx < scrollLeft + 2
+              const hasFutureOverflow = rawRightPx > scrollLeft + viewportWidth - 2
+              const hasViewportOverlap = rawRightPx > scrollLeft && rawLeftPx < scrollLeft + viewportWidth
               const minLabelX = scrollLeft + (hasPastOverflow ? 34 : 10)
               const maxLabelX = Math.max(minLabelX, scrollLeft + viewportWidth - 180)
               const naturalLabelX = leftPx + 10
@@ -532,6 +535,12 @@ function quarterPositionFromModel(date: Date, minYear: number) {
   const daysInMonth = new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate()
   const monthProgress = (date.getDate() - 1) / daysInMonth
   return (monthsFromMin + monthProgress) / 3
+}
+
+function addDays(date: Date, days: number) {
+  const next = new Date(date)
+  next.setDate(next.getDate() + days)
+  return next
 }
 
 function normalizeSlug(slug: string) {
