@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type CSSProperties } from 'react'
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { Navigate, Route, Routes, useNavigate, useParams } from 'react-router-dom'
 import cvData from './content/cv.json'
 import navData from './content/nav.json'
@@ -23,7 +23,6 @@ type TimelineItem = {
 
 type CvSection = { title: string; items: string[] }
 type CvPayload = { sections: CvSection[] }
-
 type ThemeMode = 'dark' | 'light'
 
 const navTree = navData as NavNode[]
@@ -56,9 +55,7 @@ function Workspace() {
   return (
     <div className={`app-shell theme-${theme}`}>
       <aside className="left-rail">
-        <div className="rail-top">
-          <div className="rail-title">Profile</div>
-        </div>
+        <div className="rail-title">Profile</div>
         <SidebarTree tree={navTree} activeSlug={slug} />
       </aside>
       <main className="doc-view">
@@ -123,9 +120,7 @@ function renderPage(slug: string) {
   if (slug === 'profile') return <ProfilePage />
   if (slug === 'experience-chart') return <ExperienceChartTable items={experiences} />
   if (slug === 'experience-timeline') return <ExperienceTimelineBoard items={experiences} />
-  if (slug === 'utm-dev') return <UtmPage />
   if (slug === 'resume') return <ResumePage />
-  if (slug === 'resume-ko') return <ResumeKoPage />
   if (slug === 'cv') return <CvPage />
 
   return (
@@ -151,84 +146,94 @@ function ProfilePage() {
 }
 
 function ExperienceTimelineBoard({ items }: { items: TimelineItem[] }) {
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const [quarterWidth, setQuarterWidth] = useState(58)
+
+  const ordered = useMemo(() => items.slice().sort((a, b) => a.start.localeCompare(b.start)), [items])
   const model = useMemo(() => {
-    const minDate = new Date(Math.min(...items.map((item) => new Date(item.start).getTime())))
-    const maxDate = new Date(Math.max(...items.map((item) => new Date(item.end).getTime())))
+    const minDate = new Date(Math.min(...ordered.map((item) => new Date(item.start).getTime())))
+    const maxDate = new Date(Math.max(...ordered.map((item) => new Date(item.end).getTime())))
     const minYear = minDate.getFullYear()
     const maxYear = maxDate.getFullYear()
     const totalQuarters = (maxYear - minYear + 1) * 4
-
     return { minYear, maxYear, totalQuarters }
-  }, [items])
+  }, [ordered])
 
-  const ordered = useMemo(() => items.slice().sort((a, b) => a.start.localeCompare(b.start)), [items])
+  const canvasWidth = model.totalQuarters * quarterWidth
+  const rowsHeight = ordered.length * 48 + 28
+
+  const quarterIndex = (date: Date) => (date.getFullYear() - model.minYear) * 4 + Math.floor(date.getMonth() / 3)
+
+  const setFit = () => {
+    const viewport = scrollRef.current?.clientWidth ?? 1200
+    const fit = Math.floor(viewport / model.totalQuarters)
+    setQuarterWidth(Math.max(26, Math.min(72, fit)))
+  }
+
+  const setToday = () => {
+    if (!scrollRef.current) return
+    const today = quarterIndex(new Date())
+    const target = today * quarterWidth - scrollRef.current.clientWidth / 2
+    scrollRef.current.scrollTo({ left: Math.max(target, 0), behavior: 'smooth' })
+  }
+
+  const setMultiYear = () => {
+    setQuarterWidth(58)
+  }
 
   return (
     <article className="doc-card">
       <div className="section-head">
         <h3>Experience Timeline</h3>
         <div className="timeline-controls">
-          <span>Multi-Year</span>
-          <span>Today</span>
-          <span>Fit</span>
+          <button type="button" onClick={setMultiYear}>
+            Multi-Year
+          </button>
+          <button type="button" onClick={setToday}>
+            Today
+          </button>
+          <button type="button" onClick={setFit}>
+            Fit
+          </button>
         </div>
       </div>
 
-      <div className="timeline-scroll">
-        <div
-          className="timeline-canvas"
-          style={
-            {
-              '--quarters': model.totalQuarters,
-            } as CSSProperties
-          }
-        >
-          <div className="timeline-years">
-            {Array.from({ length: model.maxYear - model.minYear + 1 }).map((_, i) => {
-              const year = model.minYear + i
-              return (
-                <div key={year} style={{ width: `${(4 / model.totalQuarters) * 100}%` }}>
-                  {year}
-                </div>
-              )
-            })}
+      <div className="timeline-panel" ref={scrollRef}>
+        <div className="timeline-inner" style={{ width: `${canvasWidth}px`, '--q-width': `${quarterWidth}px` } as CSSProperties}>
+          <div className="timeline-sticky">
+            <div className="timeline-years">
+              {Array.from({ length: model.maxYear - model.minYear + 1 }).map((_, i) => {
+                const year = model.minYear + i
+                return (
+                  <div key={year} style={{ width: `${quarterWidth * 4}px` }}>
+                    {year}
+                  </div>
+                )
+              })}
+            </div>
+            <div className="timeline-quarters">
+              {Array.from({ length: model.totalQuarters }).map((_, i) => (
+                <span key={`q-${model.minYear}-${i}`}>{(i % 4) + 1}</span>
+              ))}
+            </div>
           </div>
 
-          <div className="timeline-quarters">
-            {Array.from({ length: model.maxYear - model.minYear + 1 }).map((_, i) => {
-              const year = model.minYear + i
-              return (
-                <div className="quarter-year" key={`qy-${year}`}>
-                  {[1, 2, 3, 4].map((q) => (
-                    <span key={`${year}-q${q}`}>{q}</span>
-                  ))}
-                </div>
-              )
-            })}
-          </div>
-
-          <div className="timeline-grid">
+          <div className="timeline-body" style={{ minHeight: `${rowsHeight}px` }}>
+            <div className="timeline-grid-lines" />
             {ordered.map((item, idx) => {
-              const s = new Date(item.start)
-              const e = new Date(item.end)
-              const startQuarterIndex = (s.getFullYear() - model.minYear) * 4 + Math.floor(s.getMonth() / 3)
-              const endQuarterIndex = (e.getFullYear() - model.minYear) * 4 + Math.floor(e.getMonth() / 3)
-              const left = (startQuarterIndex / model.totalQuarters) * 100
-              const width = ((endQuarterIndex - startQuarterIndex + 1) / model.totalQuarters) * 100
-
+              const s = quarterIndex(new Date(item.start))
+              const e = quarterIndex(new Date(item.end))
+              const left = s * quarterWidth + 2
+              const width = Math.max((e - s + 1) * quarterWidth - 4, 92)
               return (
-                <div className="timeline-row" key={item.id}>
-                  <span
-                    className="timeline-pill"
-                    style={{
-                      left: `${left}%`,
-                      width: `${Math.max(width, 5)}%`,
-                      top: `${idx * 42 + 8}px`,
-                    }}
-                  >
-                    {item.group} {item.title}
-                  </span>
-                </div>
+                <span
+                  className="timeline-pill"
+                  key={item.id}
+                  title={`${item.title} (${item.start} - ${item.end})`}
+                  style={{ left: `${left}px`, top: `${idx * 48 + 10}px`, width: `${width}px` }}
+                >
+                  {item.group} {item.title}
+                </span>
               )
             })}
           </div>
@@ -271,20 +276,6 @@ function ExperienceChartTable({ items }: { items: TimelineItem[] }) {
   )
 }
 
-function UtmPage() {
-  return (
-    <section className="doc-card">
-      <h3>UTM 개발</h3>
-      <ul className="plain-list">
-        <li>UTM 배포 자동화 파이프라인(Bash) 설계 및 운영</li>
-        <li>DNS, VPN, VLAN, 방화벽 정책 운영 및 점검</li>
-        <li>패킷 분석 기반 원인 진단(tcpdump, Wireshark, iptables)</li>
-        <li>운영 중단을 줄이기 위한 검증 루틴과 로그 체계 개선</li>
-      </ul>
-    </section>
-  )
-}
-
 function ResumePage() {
   return (
     <section className="doc-card">
@@ -292,18 +283,6 @@ function ResumePage() {
       <p>
         DevOps engineer focused on Linux operations, incident response, network troubleshooting, and
         deployment automation in production environments.
-      </p>
-    </section>
-  )
-}
-
-function ResumeKoPage() {
-  return (
-    <section className="doc-card">
-      <h3>국문이력서 요약</h3>
-      <p>
-        리눅스 기반 인프라 운영, 네트워크 장애 분석, 배포 자동화 경험을 중심으로 DevOps/SRE 역할을 수행하고 있습니다.
-        IDC 환경 운영과 실시간 대응 경험을 결합해 운영 안정성과 복구 속도를 개선하는 데 강점이 있습니다.
       </p>
     </section>
   )

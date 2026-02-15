@@ -173,75 +173,75 @@ body {
   gap: 8px;
 }
 
-.timeline-controls span {
+.timeline-controls button {
   border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--muted);
   border-radius: 8px;
   padding: 4px 9px;
   font-size: 13px;
-  color: var(--muted);
+  cursor: pointer;
 }
 
-.timeline-scroll {
-  overflow-x: auto;
+.timeline-panel {
+  overflow: auto;
   border: 1px solid var(--line);
   border-radius: 10px;
+  max-height: 760px;
 }
 
-.timeline-canvas {
-  min-width: 1200px;
+.timeline-inner {
+  position: relative;
+  min-width: 100%;
+}
+
+.timeline-sticky {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: var(--panel);
+  border-bottom: 1px solid var(--line);
 }
 
 .timeline-years {
   display: flex;
-  border-bottom: 1px solid var(--line);
-  background: rgba(255, 255, 255, 0.02);
 }
 
 .timeline-years div {
-  padding: 10px 8px;
-  font-weight: 600;
+  padding: 10px 6px 8px;
+  font-weight: 700;
   border-right: 1px solid var(--line);
 }
 
 .timeline-quarters {
-  display: flex;
-  border-bottom: 1px solid var(--line);
-}
-
-.quarter-year {
-  flex: 1;
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  border-right: 1px solid var(--line);
+  grid-template-columns: repeat(auto-fill, minmax(var(--q-width), 1fr));
 }
 
-.quarter-year span {
+.timeline-quarters span {
+  width: var(--q-width);
   text-align: center;
   font-size: 12px;
   color: var(--muted);
-  padding: 6px 0;
+  padding: 7px 0;
   border-right: 1px solid var(--line);
 }
 
-.quarter-year span:last-child {
-  border-right: 0;
+.timeline-body {
+  position: relative;
 }
 
-.timeline-grid {
-  position: relative;
-  min-height: 640px;
+.timeline-grid-lines {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
   background-image: repeating-linear-gradient(
     to right,
     transparent 0,
-    transparent calc((100% / var(--quarters)) - 1px),
-    var(--line) calc((100% / var(--quarters)) - 1px),
-    var(--line) calc(100% / var(--quarters))
+    transparent calc(var(--q-width) - 1px),
+    var(--line) calc(var(--q-width) - 1px),
+    var(--line) var(--q-width)
   );
-}
-
-.timeline-row {
-  height: 42px;
-  position: relative;
 }
 
 .timeline-pill {
@@ -255,6 +255,7 @@ body {
   color: var(--text);
   border-radius: 8px;
   padding: 5px 10px;
+  z-index: 2;
 }
 
 .table-wrap {
