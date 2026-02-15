@@ -216,7 +216,6 @@ function ExperienceTimelineBoard({
   jumpToItemId: string | null
 }) {
   const scrollRef = useRef<HTMLDivElement>(null)
-  const initialFocusDoneRef = useRef(false)
   const [mode, setMode] = useState<TimelineMode>('fit')
   const [quarterWidth, setQuarterWidth] = useState(58)
   const [scrollLeft, setScrollLeft] = useState(0)
@@ -265,6 +264,17 @@ function ExperienceTimelineBoard({
     scrollRef.current.scrollTo({ left: Math.max(quarter * width - viewport / 2, 0), behavior: 'smooth' })
   }
 
+  const focusNearestEventRow = () => {
+    const node = scrollRef.current
+    if (!node || nearestEventRowIndex < 0) return
+    const stickyHeight = (node.querySelector('.timeline-sticky') as HTMLElement | null)?.offsetHeight ?? 64
+    const targetTop = nearestEventRowIndex * 42 + 8
+    node.scrollTo({
+      top: Math.max(targetTop - stickyHeight - 10, 0),
+      behavior: 'smooth',
+    })
+  }
+
   const setMultiYear = () => {
     const width = 58
     setQuarterWidth(width)
@@ -292,6 +302,7 @@ function ExperienceTimelineBoard({
       const start = quarterIndexFromModel(new Date(`${baseRange.minYear}-01-01`), model.minYear)
       const end = quarterIndexFromModel(new Date(`${baseRange.maxYear}-12-31`), model.minYear)
       scrollToQuarter((start + end) / 2, width)
+      requestAnimationFrame(() => focusNearestEventRow())
     })
   }
 
@@ -300,23 +311,6 @@ function ExperienceTimelineBoard({
     // Initial view must open in fit mode.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
-
-  useEffect(() => {
-    const node = scrollRef.current
-    if (!node || nearestEventRowIndex < 0 || initialFocusDoneRef.current) return
-
-    initialFocusDoneRef.current = true
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        const stickyHeight = (node.querySelector('.timeline-sticky') as HTMLElement | null)?.offsetHeight ?? 64
-        const targetTop = nearestEventRowIndex * 42 + 8
-        node.scrollTo({
-          top: Math.max(targetTop - stickyHeight - 10, 0),
-          behavior: 'smooth',
-        })
-      })
-    })
-  }, [nearestEventRowIndex])
 
   useEffect(() => {
     const node = scrollRef.current
