@@ -436,6 +436,12 @@ thead th {
   overflow: auto;
 }
 
+.markdown-body img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+}
+
 .selected-row td {
   background: rgba(98, 144, 255, 0.15);
 }

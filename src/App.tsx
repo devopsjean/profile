@@ -200,7 +200,7 @@ function ExperienceTimelineBoard({
   selectedItemId: string | null
 }) {
   const scrollRef = useRef<HTMLDivElement>(null)
-  const [mode, setMode] = useState<TimelineMode>('multi-year')
+  const [mode, setMode] = useState<TimelineMode>('fit')
   const [quarterWidth, setQuarterWidth] = useState(58)
 
   const ordered = useMemo(() => items.slice().sort((a, b) => a.start.localeCompare(b.start)), [items])
@@ -257,6 +257,12 @@ function ExperienceTimelineBoard({
       scrollToQuarter((start + end) / 2, width)
     })
   }
+
+  useEffect(() => {
+    setFit()
+    // Initial view must open in fit mode.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   return (
     <>
@@ -363,6 +369,8 @@ function SreMiniProjectPage() {
   const [markdown, setMarkdown] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
+  const repoBlobBase = 'https://github.com/devopsjean/mini-project/blob/main/'
+  const repoRawBase = 'https://raw.githubusercontent.com/devopsjean/mini-project/main/'
 
   useEffect(() => {
     const controller = new AbortController()
@@ -392,11 +400,35 @@ function SreMiniProjectPage() {
       {error && <p>{error}</p>}
       {!loading && !error && (
         <div className="markdown-body">
-          <ReactMarkdown remarkPlugins={[remarkGfm]}>{markdown}</ReactMarkdown>
+          <ReactMarkdown
+            remarkPlugins={[remarkGfm]}
+            components={{
+              img: ({ src, alt }) => <img src={resolveReadmeUrl(src, repoRawBase, repoBlobBase, true)} alt={alt ?? ''} loading="lazy" />,
+              a: ({ href, children }) => (
+                <a href={resolveReadmeUrl(href, repoRawBase, repoBlobBase, false)} target="_blank" rel="noreferrer">
+                  {children}
+                </a>
+              ),
+            }}
+          >
+            {markdown}
+          </ReactMarkdown>
         </div>
       )}
     </section>
   )
+}
+
+function resolveReadmeUrl(
+  url: string | undefined,
+  rawBase: string,
+  blobBase: string,
+  preferRaw: boolean,
+) {
+  if (!url) return ''
+  if (/^[a-z]+:/i.test(url) || url.startsWith('//') || url.startsWith('#')) return url
+  const clean = url.replace(/^\.\//, '').replace(/^\/+/, '')
+  return `${preferRaw ? rawBase : blobBase}${clean}`
 }
 
 function quarterIndexFromModel(date: Date, minYear: number) {
