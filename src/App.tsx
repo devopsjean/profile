@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { Navigate, Route, Routes, useNavigate, useParams } from 'react-router-dom'
-import cvData from './content/cv.json'
 import navData from './content/nav.json'
 import profileData from './content/profile.json'
 import timelineData from './content/timeline.json'
 
 type NavFolder = { title: string; type: 'folder'; children: NavNode[] }
 type NavPage = { title: string; type: 'page'; slug: string }
-type NavNode = NavFolder | NavPage
+type NavAnchor = { title: string; type: 'anchor'; slug: string; targetId: string }
+type NavNode = NavFolder | NavPage | NavAnchor
 
 type TimelineItem = {
   id: string
@@ -21,14 +21,11 @@ type TimelineItem = {
   detail: string
 }
 
-type CvSection = { title: string; items: string[] }
-type CvPayload = { sections: CvSection[] }
 type ThemeMode = 'dark' | 'light'
 type TimelineMode = 'multi-year' | 'today' | 'fit'
 
 const navTree = navData as NavNode[]
 const experiences = timelineData as TimelineItem[]
-const cv = cvData as CvPayload
 
 function App() {
   return (
@@ -42,7 +39,10 @@ function App() {
 
 function Workspace() {
   const { slug = 'profile' } = useParams<{ slug: string }>()
-  const title = titleForSlug(slug)
+  const navigate = useNavigate()
+  const normalizedSlug = normalizeSlug(slug)
+  const defaultMenuId = slug === 'experience-timeline' ? 'Profile/Timeline' : slug === 'experience-chart' ? 'Profile/Timetable' : 'Profile/Profile'
+  const [activeMenuId, setActiveMenuId] = useState(defaultMenuId)
   const [theme, setTheme] = useState<ThemeMode>(() => {
     const stored = window.localStorage.getItem('profile-theme')
     if (stored === 'dark' || stored === 'light') return stored
@@ -53,39 +53,66 @@ function Workspace() {
     window.localStorage.setItem('profile-theme', theme)
   }, [theme])
 
+  useEffect(() => {
+    if (slug === 'experience-timeline') {
+      requestAnimationFrame(() => scrollToTarget('timeline-section'))
+    } else if (slug === 'experience-chart') {
+      requestAnimationFrame(() => scrollToTarget('timetable-section'))
+    }
+  }, [slug])
+
+  useEffect(() => {
+    if (normalizedSlug !== slug) navigate(`/${normalizedSlug}`, { replace: true })
+  }, [navigate, normalizedSlug, slug])
+
+  const handleMenuAction = (node: NavPage | NavAnchor, menuId: string) => {
+    setActiveMenuId(menuId)
+    if (node.type === 'page') {
+      navigate(`/${node.slug}`)
+      return
+    }
+
+    if (normalizedSlug !== node.slug) {
+      navigate(`/${node.slug}`)
+      setTimeout(() => scrollToTarget(node.targetId), 120)
+      return
+    }
+    scrollToTarget(node.targetId)
+  }
+
   return (
     <div className={`app-shell theme-${theme}`}>
       <aside className="left-rail">
         <div className="rail-title">Profile</div>
-        <SidebarTree tree={navTree} activeSlug={slug} />
+        <SidebarTree tree={navTree} activeMenuId={activeMenuId} onMenuAction={handleMenuAction} />
       </aside>
       <main className="doc-view">
         <header className="doc-header">
           <div>
-            <h1>{title}</h1>
+            <h1>Profile</h1>
             <p>{profileData.name}</p>
           </div>
           <button className="theme-toggle" type="button" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
             {theme === 'dark' ? 'Light' : 'Dark'}
           </button>
         </header>
-        {renderPage(slug)}
+        <ProfilePage />
       </main>
     </div>
   )
 }
 
-function SidebarTree({ tree, activeSlug }: { tree: NavNode[]; activeSlug: string }) {
-  const navigate = useNavigate()
-  const [openFolders, setOpenFolders] = useState<Record<string, boolean>>({
-    Profile: true,
-    Experience: true,
-    Documents: true,
-  })
-
-  const toggleFolder = (path: string) => {
-    setOpenFolders((prev) => ({ ...prev, [path]: !prev[path] }))
-  }
+function SidebarTree({
+  tree,
+  activeMenuId,
+  onMenuAction,
+}: {
+  tree: NavNode[]
+  activeMenuId: string
+  onMenuAction: (node: NavPage | NavAnchor, menuId: string) => void
+}) {
+  const [openFolders, setOpenFolders] = useState<Record<string, boolean>>({ Profile: true })
+  const toggleFolder = (path: string) => setOpenFolders((prev) => ({ ...prev, [path]: !prev[path] }))
 
   const renderNode = (node: NavNode, path: string) => {
     if (node.type === 'folder') {
@@ -104,9 +131,9 @@ function SidebarTree({ tree, activeSlug }: { tree: NavNode[]; activeSlug: string
     return (
       <li key={path}>
         <button
-          className={`tree-page ${activeSlug === node.slug ? 'active' : ''}`}
+          className={`tree-page ${activeMenuId === path ? 'active' : ''}`}
           type="button"
-          onClick={() => navigate(`/${node.slug}`)}
+          onClick={() => onMenuAction(node, path)}
         >
           {node.title}
         </button>
@@ -117,42 +144,32 @@ function SidebarTree({ tree, activeSlug }: { tree: NavNode[]; activeSlug: string
   return <ul className="tree-list">{tree.map((node) => renderNode(node, node.title))}</ul>
 }
 
-function renderPage(slug: string) {
-  if (slug === 'profile') return <ProfilePage />
-  if (slug === 'experience-chart') return <ExperienceChartTable items={experiences} selectedItemId={null} />
-  if (slug === 'experience-timeline')
-    return <ExperienceTimelineBoard items={experiences} onSelectItem={() => undefined} selectedItemId={null} />
-  if (slug === 'resume') return <ResumePage />
-  if (slug === 'cv') return <CvPage />
-
-  return (
-    <section className="doc-card">
-      <h2>Not found</h2>
-    </section>
-  )
-}
-
 function ProfilePage() {
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null)
 
   const handleSelectTimelineItem = (itemId: string) => {
     setSelectedItemId(itemId)
     requestAnimationFrame(() => {
-      const row = document.getElementById(`detail-row-${itemId}`)
-      row?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      document.getElementById(`detail-row-${itemId}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
     })
   }
 
   return (
-    <section className="doc-stack">
+    <section className="profile-dashboard">
       <article className="hero-card">
         <h2>{profileData.role}</h2>
         <p>
           {profileData.location} | {profileData.email}
         </p>
       </article>
-      <ExperienceTimelineBoard items={experiences} onSelectItem={handleSelectTimelineItem} selectedItemId={selectedItemId} />
-      <ExperienceChartTable items={experiences} selectedItemId={selectedItemId} />
+
+      <article id="timeline-section" className="doc-card dashboard-timeline">
+        <ExperienceTimelineBoard items={experiences} onSelectItem={handleSelectTimelineItem} selectedItemId={selectedItemId} />
+      </article>
+
+      <article id="timetable-section" className="doc-card dashboard-table">
+        <ExperienceChartTable items={experiences} selectedItemId={selectedItemId} />
+      </article>
     </section>
   )
 }
@@ -174,9 +191,7 @@ function ExperienceTimelineBoard({
   const baseRange = useMemo(() => {
     const minDate = new Date(Math.min(...ordered.map((item) => new Date(item.start).getTime())))
     const maxDate = new Date(Math.max(...ordered.map((item) => new Date(item.end).getTime())))
-    const minYear = minDate.getFullYear()
-    const maxYear = maxDate.getFullYear()
-    return { minYear, maxYear }
+    return { minYear: minDate.getFullYear(), maxYear: maxDate.getFullYear() }
   }, [ordered])
 
   const model = useMemo(() => {
@@ -186,20 +201,15 @@ function ExperienceTimelineBoard({
     return { minYear, maxYear, totalQuarters: (maxYear - minYear + 1) * 4 }
   }, [baseRange])
 
-  const dataQuarters = useMemo(
-    () => (baseRange.maxYear - baseRange.minYear + 1) * 4,
-    [baseRange.maxYear, baseRange.minYear],
-  )
-
-  const rowsHeight = ordered.length * 48 + 28
+  const dataQuarters = (baseRange.maxYear - baseRange.minYear + 1) * 4
+  const rowsHeight = ordered.length * 42 + 20
   const currentQuarterIndex = quarterIndexFromModel(new Date(), model.minYear)
   const canvasWidth = model.totalQuarters * quarterWidth
 
   const scrollToQuarter = (quarter: number, width: number) => {
     if (!scrollRef.current) return
     const viewport = scrollRef.current.clientWidth
-    const target = quarter * width - viewport / 2
-    scrollRef.current.scrollTo({ left: Math.max(target, 0), behavior: 'smooth' })
+    scrollRef.current.scrollTo({ left: Math.max(quarter * width - viewport / 2, 0), behavior: 'smooth' })
   }
 
   const setMultiYear = () => {
@@ -207,10 +217,9 @@ function ExperienceTimelineBoard({
     setQuarterWidth(width)
     setMode('multi-year')
     requestAnimationFrame(() => {
-      const dataStart = quarterIndexFromModel(new Date(`${baseRange.minYear}-01-01`), model.minYear)
-      const dataEnd = quarterIndexFromModel(new Date(`${baseRange.maxYear}-12-31`), model.minYear)
-      const center = (dataStart + dataEnd) / 2
-      scrollToQuarter(center, width)
+      const start = quarterIndexFromModel(new Date(`${baseRange.minYear}-01-01`), model.minYear)
+      const end = quarterIndexFromModel(new Date(`${baseRange.maxYear}-12-31`), model.minYear)
+      scrollToQuarter((start + end) / 2, width)
     })
   }
 
@@ -222,20 +231,19 @@ function ExperienceTimelineBoard({
   }
 
   const setFit = () => {
-    const viewport = scrollRef.current?.clientWidth ?? 1200
-    const fit = Math.floor(viewport / dataQuarters)
-    const width = Math.max(24, Math.min(140, fit))
+    const viewport = scrollRef.current?.clientWidth ?? 1100
+    const width = Math.max(24, Math.min(140, Math.floor(viewport / dataQuarters)))
     setQuarterWidth(width)
     setMode('fit')
     requestAnimationFrame(() => {
-      const dataStartQuarter = quarterIndexFromModel(new Date(`${baseRange.minYear}-01-01`), model.minYear)
-      const centerQuarter = dataStartQuarter + dataQuarters / 2
-      scrollToQuarter(centerQuarter, width)
+      const start = quarterIndexFromModel(new Date(`${baseRange.minYear}-01-01`), model.minYear)
+      const end = quarterIndexFromModel(new Date(`${baseRange.maxYear}-12-31`), model.minYear)
+      scrollToQuarter((start + end) / 2, width)
     })
   }
 
   return (
-    <article className="doc-card">
+    <>
       <div className="section-head">
         <h3>Experience Timeline</h3>
         <div className="timeline-controls">
@@ -248,35 +256,23 @@ function ExperienceTimelineBoard({
           <button className={mode === 'fit' ? 'active' : ''} type="button" onClick={setFit}>
             Fit
           </button>
-          <span className="mode-badge">{mode}</span>
         </div>
       </div>
 
       <div className="timeline-panel" ref={scrollRef}>
-        <div
-          className="timeline-inner"
-          style={{ '--quarters': `${model.totalQuarters}`, '--q-width': `${quarterWidth}px`, width: `${canvasWidth}px` } as CSSProperties}
-        >
+        <div className="timeline-inner" style={{ '--quarters': `${model.totalQuarters}`, '--q-width': `${quarterWidth}px`, width: `${canvasWidth}px` } as CSSProperties}>
           <div className="timeline-sticky">
             <div className="timeline-years">
-              {Array.from({ length: model.maxYear - model.minYear + 1 }).map((_, i) => {
-                const year = model.minYear + i
-                return (
-                  <div key={year}>
-                    {year}
-                  </div>
-                )
-              })}
+              {Array.from({ length: model.maxYear - model.minYear + 1 }).map((_, i) => (
+                <div key={model.minYear + i}>{model.minYear + i}</div>
+              ))}
             </div>
             <div className="timeline-quarters">
-              {Array.from({ length: model.totalQuarters }).map((_, i) => {
-                const isCurrent = i === currentQuarterIndex
-                return (
-                  <span className={isCurrent ? 'current-quarter' : ''} key={`q-${model.minYear}-${i}`}>
-                    {(i % 4) + 1}
-                  </span>
-                )
-              })}
+              {Array.from({ length: model.totalQuarters }).map((_, i) => (
+                <span className={i === currentQuarterIndex ? 'current-quarter' : ''} key={`q-${i}`}>
+                  {(i % 4) + 1}
+                </span>
+              ))}
             </div>
           </div>
 
@@ -296,9 +292,9 @@ function ExperienceTimelineBoard({
                   title={`${item.title} (${item.start} - ${item.end})`}
                   onClick={() => onSelectItem(item.id)}
                   style={{
-                    top: `${idx * 48 + 10}px`,
+                    top: `${idx * 42 + 8}px`,
                     left: `calc((${start} / var(--quarters)) * 100% + 2px)`,
-                    width: `max(calc(((${end - start + 1}) / var(--quarters)) * 100% - 4px), 92px)`,
+                    width: `max(calc(((${end - start + 1}) / var(--quarters)) * 100% - 4px), 86px)`,
                   }}
                 >
                   <span className="timeline-pill-label">
@@ -310,15 +306,15 @@ function ExperienceTimelineBoard({
           </div>
         </div>
       </div>
-    </article>
+    </>
   )
 }
 
 function ExperienceChartTable({ items, selectedItemId }: { items: TimelineItem[]; selectedItemId: string | null }) {
   return (
-    <article className="doc-card">
-      <h3>Experience Chart</h3>
-      <div className="table-wrap">
+    <>
+      <h3>Experience Timetable</h3>
+      <div className="table-wrap compact">
         <table>
           <thead>
             <tr>
@@ -343,7 +339,7 @@ function ExperienceChartTable({ items, selectedItemId }: { items: TimelineItem[]
           </tbody>
         </table>
       </div>
-    </article>
+    </>
   )
 }
 
@@ -351,41 +347,13 @@ function quarterIndexFromModel(date: Date, minYear: number) {
   return (date.getFullYear() - minYear) * 4 + Math.floor(date.getMonth() / 3)
 }
 
-function ResumePage() {
-  return (
-    <section className="doc-card">
-      <h3>Resume</h3>
-      <p>
-        DevOps engineer focused on Linux operations, incident response, network troubleshooting, and
-        deployment automation in production environments.
-      </p>
-    </section>
-  )
+function normalizeSlug(slug: string) {
+  if (slug === 'experience-timeline' || slug === 'experience-chart') return 'profile'
+  return 'profile'
 }
 
-function CvPage() {
-  return (
-    <section className="doc-stack">
-      {cv.sections.map((section) => (
-        <article className="doc-card" key={section.title}>
-          <h3>{section.title}</h3>
-          <ul className="plain-list">
-            {section.items.map((item) => (
-              <li key={item}>{item}</li>
-            ))}
-          </ul>
-        </article>
-      ))}
-    </section>
-  )
-}
-
-function titleForSlug(slug: string) {
-  return flattenPages(navTree).find((page) => page.slug === slug)?.title ?? 'Profile'
-}
-
-function flattenPages(nodes: NavNode[]): NavPage[] {
-  return nodes.flatMap((node) => (node.type === 'page' ? [node] : flattenPages(node.children)))
+function scrollToTarget(targetId: string) {
+  document.getElementById(targetId)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
 }
 
 export default App

@@ -88,6 +88,10 @@ body {
   cursor: pointer;
 }
 
+.tree-list .tree-list .tree-page {
+  padding-left: 28px;
+}
+
 .tree-folder:hover,
 .tree-page:hover {
   background: var(--hover);
@@ -107,6 +111,8 @@ body {
 .doc-view {
   padding: 18px 28px 28px;
   max-width: calc(100vw - 280px);
+  height: 100vh;
+  overflow: hidden;
 }
 
 .doc-header {
@@ -114,6 +120,7 @@ body {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 12px;
+  flex: 0 0 auto;
 }
 
 .doc-header h1 {
@@ -138,6 +145,14 @@ body {
 .doc-stack {
   display: grid;
   gap: 14px;
+}
+
+.profile-dashboard {
+  height: calc(100vh - 126px);
+  display: grid;
+  grid-template-rows: auto minmax(260px, 1fr) minmax(200px, 0.75fr);
+  gap: 12px;
+  min-height: 0;
 }
 
 .doc-card,
@@ -205,6 +220,24 @@ body {
   border: 1px solid var(--line);
   border-radius: 10px;
   max-height: 760px;
+}
+
+.dashboard-timeline {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.dashboard-timeline .timeline-panel {
+  flex: 1;
+  max-height: none;
+}
+
+.dashboard-table {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .timeline-inner {
@@ -303,10 +336,19 @@ body {
   border-radius: 10px;
 }
 
+.table-wrap.compact {
+  flex: 1;
+}
+
 table {
   border-collapse: collapse;
   width: 100%;
   min-width: 820px;
+}
+
+.table-wrap.compact table {
+  min-width: 0;
+  table-layout: fixed;
 }
 
 th,
@@ -315,6 +357,7 @@ td {
   padding: 12px;
   text-align: left;
   vertical-align: top;
+  word-break: break-word;
 }
 
 thead th {
@@ -357,9 +400,16 @@ thead th {
   .doc-view {
     padding: 14px;
     max-width: 100vw;
+    height: auto;
+    overflow: visible;
   }
 
   .section-head h3 {
     font-size: 28px;
+  }
+
+  .profile-dashboard {
+    height: auto;
+    grid-template-rows: auto auto auto;
   }
 }

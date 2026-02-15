@@ -3,23 +3,9 @@
     "title": "Profile",
     "type": "folder",
     "children": [
-      { "title": "Profile", "type": "page", "slug": "profile" }
-    ]
-  },
-  {
-    "title": "Experience",
-    "type": "folder",
-    "children": [
-      { "title": "Experience Chart", "type": "page", "slug": "experience-chart" },
-      { "title": "Experience Timeline", "type": "page", "slug": "experience-timeline" }
-    ]
-  },
-  {
-    "title": "Documents",
-    "type": "folder",
-    "children": [
-      { "title": "Resume", "type": "page", "slug": "resume" },
-      { "title": "CV", "type": "page", "slug": "cv" }
+      { "title": "Profile", "type": "page", "slug": "profile" },
+      { "title": "Timeline", "type": "anchor", "slug": "profile", "targetId": "timeline-section" },
+      { "title": "Timetable", "type": "anchor", "slug": "profile", "targetId": "timetable-section" }
     ]
   }
 ]
