@@ -1,0 +1,79 @@
+[
+  {
+    "id": "live-sound-engineer",
+    "group": "Work",
+    "title": "Live Sound / Real-Time Systems Engineer",
+    "company": "Freelance",
+    "location": "Seoul",
+    "start": "2014-01-01",
+    "end": "2023-09-30",
+    "tags": ["realtime", "operations", "incident-response"],
+    "detail": "Operated zero-downtime live systems with fast troubleshooting under strict time constraints."
+  },
+  {
+    "id": "securelink-infra",
+    "group": "Work",
+    "title": "Systems / Infrastructure Engineer",
+    "company": "Securelink",
+    "location": "Seoul",
+    "start": "2023-10-01",
+    "end": "2026-02-15",
+    "tags": ["linux", "utm", "network", "automation"],
+    "detail": "Operated Linux servers in IDC, handled UTM operations, and improved deployment reliability."
+  },
+  {
+    "id": "soldevops-bootcamp",
+    "group": "Training",
+    "title": "Cloud & DevOps Bootcamp",
+    "company": "SolDesk",
+    "location": "Seoul",
+    "start": "2022-12-01",
+    "end": "2023-06-30",
+    "tags": ["aws", "iac", "microservices"],
+    "detail": "Completed 960-hour training and earned first prize in final project."
+  },
+  {
+    "id": "kgitb-multicloud",
+    "group": "Training",
+    "title": "Multi-Cloud Engineering Bootcamp",
+    "company": "KGITB",
+    "location": "Seoul",
+    "start": "2022-05-01",
+    "end": "2022-10-31",
+    "tags": ["aws", "gcp", "kubernetes"],
+    "detail": "Completed practical training across cloud and container platforms."
+  },
+  {
+    "id": "xutm-framework",
+    "group": "Projects",
+    "title": "xUTM Deployment Automation Framework",
+    "company": "Securelink",
+    "location": "Seoul",
+    "start": "2024-01-01",
+    "end": "2026-02-15",
+    "tags": ["bash", "deployment", "validation"],
+    "detail": "Built customized Bash deployment automation with validation, rollback-safe routines, and progress UI."
+  },
+  {
+    "id": "rustcost-project",
+    "group": "Projects",
+    "title": "RustCost Open Source Contribution",
+    "company": "Open Source",
+    "location": "Remote",
+    "start": "2025-09-01",
+    "end": "2026-02-15",
+    "tags": ["kubernetes", "cncf", "oss"],
+    "detail": "Contributed DevOps and Kubernetes components for cloud-native cost analysis platform."
+  },
+  {
+    "id": "lfs101",
+    "group": "Certifications",
+    "title": "Linux Foundation LFS101",
+    "company": "The Linux Foundation",
+    "location": "Online",
+    "start": "2025-01-10",
+    "end": "2025-02-10",
+    "tags": ["linux", "foundation"],
+    "detail": "Completed Linux and open source fundamentals curriculum."
+  }
+]

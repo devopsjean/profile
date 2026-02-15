@@ -1,0 +1,27 @@
+[
+  {
+    "title": "Profile",
+    "type": "folder",
+    "children": [
+      { "title": "Profile", "type": "page", "slug": "profile" },
+      { "title": "국문이력서", "type": "page", "slug": "resume-ko" },
+      { "title": "UTM 개발", "type": "page", "slug": "utm-dev" }
+    ]
+  },
+  {
+    "title": "Experience",
+    "type": "folder",
+    "children": [
+      { "title": "Experience Chart", "type": "page", "slug": "experience-chart" },
+      { "title": "Experience Timeline", "type": "page", "slug": "experience-timeline" }
+    ]
+  },
+  {
+    "title": "Documents",
+    "type": "folder",
+    "children": [
+      { "title": "Resume", "type": "page", "slug": "resume" },
+      { "title": "CV", "type": "page", "slug": "cv" }
+    ]
+  }
+]

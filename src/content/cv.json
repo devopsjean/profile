@@ -1,0 +1,37 @@
+{
+  "sections": [
+    {
+      "title": "Professional Summary",
+      "items": [
+        "Junior DevOps/SRE Engineer with practical experience in Linux systems administration, multi-site networking, Bash automation, and incident response.",
+        "Experienced in production-grade IDC operations, UTM environments, and cloud-native lab infrastructures."
+      ]
+    },
+    {
+      "title": "Core Competencies",
+      "items": [
+        "Linux: Ubuntu, Rocky Linux, Debian, service troubleshooting",
+        "Networking: DNS, VLAN, VPN, routing, packet capture, firewall rules",
+        "Automation: Bash scripting, deployment workflow design, Git-based operations",
+        "Cloud/Containers: AWS, GCP, Azure fundamentals, Docker, Kubernetes, Helm",
+        "Observability: Prometheus, Grafana, metric-driven incident diagnosis"
+      ]
+    },
+    {
+      "title": "Education & Training",
+      "items": [
+        "University of London - BSc Computer Science (Conditional Offer, expected 2026)",
+        "SolDesk Cloud & DevOps Bootcamp (960 hours, 2022-12 to 2023-06)",
+        "KGITB Multi-Cloud Engineering Bootcamp (580 hours, 2022-05 to 2022-10)"
+      ]
+    },
+    {
+      "title": "Certifications & Courses",
+      "items": [
+        "Linux Foundation: LFS101, LFD102, LFC193, LFC194 (2025)",
+        "Kubecost official training (2025)",
+        "Architecting on AWS / GCP / Azure administrator training (2023)"
+      ]
+    }
+  ]
+}

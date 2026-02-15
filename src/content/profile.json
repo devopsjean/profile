@@ -1,0 +1,14 @@
+{
+  "name": "Junsung Kim",
+  "role": "DevOps / Site Reliability Engineer",
+  "location": "Seoul, South Korea",
+  "email": "devops.jean@gmail.com",
+  "phone": "+82-10-8931-8455",
+  "links": [
+    { "label": "GitHub", "url": "https://github.com/devopsjean" },
+    { "label": "LinkedIn", "url": "https://www.linkedin.com/in/devopsjeanmc" },
+    { "label": "Portfolio", "url": "https://coda.io/@devops/allaboutit" }
+  ],
+  "summary": "DevOps/SRE engineer with hands-on experience in Linux system operations, network troubleshooting, Bash automation, and cloud-native environments. Focused on reliability, observability, and practical delivery speed.",
+  "focus": ["Linux Operations", "UTM / Network Security", "Kubernetes", "Automation", "Observability"]
+}
