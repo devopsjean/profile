@@ -220,6 +220,9 @@ body {
   text-decoration: none;
   border-bottom: 1px dashed transparent;
   font-size: 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .contact-links a:hover {
@@ -229,6 +232,12 @@ body {
 .copy-state {
   color: var(--accent);
   font-size: 13px;
+}
+
+.social-icon {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 16px;
 }
 
 .section-head {

@@ -165,14 +165,36 @@
     "detail": "Linux Foundation"
   },
   {
-    "id": "lfc194",
+    "id": "lfc104",
     "group": "Linux Foundation",
-    "title": "Implementing Open Source License Compliance Management LFC194",
+    "title": "Ethics for Open Source Development LFC104",
     "company": "Linux Foundation",
     "location": "Online",
     "start": "2025-12-28",
     "end": "2026-02-15",
     "tags": ["Certificate"],
     "detail": "Linux Foundation"
+  },
+  {
+    "id": "lfc194",
+    "group": "Linux Foundation",
+    "title": "Implementing Open Source License Compliance Management LFC194",
+    "company": "Linux Foundation",
+    "location": "Online",
+    "start": "2026-01-11",
+    "end": "2026-01-11",
+    "tags": ["Certificate"],
+    "detail": "Linux Foundation"
+  },
+  {
+    "id": "sre-mini-project",
+    "group": "Personal Project",
+    "title": "SRE Mini Project",
+    "company": "Personal",
+    "location": "Online",
+    "start": "2026-01-30",
+    "end": "2026-02-09",
+    "tags": ["Personal Project"],
+    "detail": "Personal Project"
   }
 ]
