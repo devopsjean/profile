@@ -207,13 +207,15 @@ function ExperienceTimelineBoard({
     setQuarterWidth(width)
     setMode('multi-year')
     requestAnimationFrame(() => {
-      const firstDataQuarter = quarterIndexFromModel(new Date(`${baseRange.minYear}-01-01`), model.minYear)
-      scrollToQuarter(firstDataQuarter, width)
+      const dataStart = quarterIndexFromModel(new Date(`${baseRange.minYear}-01-01`), model.minYear)
+      const dataEnd = quarterIndexFromModel(new Date(`${baseRange.maxYear}-12-31`), model.minYear)
+      const center = (dataStart + dataEnd) / 2
+      scrollToQuarter(center, width)
     })
   }
 
   const setToday = () => {
-    const width = 58
+    const width = 92
     setQuarterWidth(width)
     setMode('today')
     requestAnimationFrame(() => scrollToQuarter(currentQuarterIndex, width))
@@ -246,6 +248,7 @@ function ExperienceTimelineBoard({
           <button className={mode === 'fit' ? 'active' : ''} type="button" onClick={setFit}>
             Fit
           </button>
+          <span className="mode-badge">{mode}</span>
         </div>
       </div>
 
