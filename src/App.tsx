@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, type CSSProperties } from 'react'
 import { Navigate, Route, Routes, useNavigate, useParams } from 'react-router-dom'
 import cvData from './content/cv.json'
 import navData from './content/nav.json'
@@ -24,6 +24,8 @@ type TimelineItem = {
 type CvSection = { title: string; items: string[] }
 type CvPayload = { sections: CvSection[] }
 
+type ThemeMode = 'dark' | 'light'
+
 const navTree = navData as NavNode[]
 const experiences = timelineData as TimelineItem[]
 const cv = cvData as CvPayload
@@ -41,17 +43,33 @@ function App() {
 function Workspace() {
   const { slug = 'profile' } = useParams<{ slug: string }>()
   const title = titleForSlug(slug)
+  const [theme, setTheme] = useState<ThemeMode>(() => {
+    const stored = window.localStorage.getItem('profile-theme')
+    if (stored === 'dark' || stored === 'light') return stored
+    return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark'
+  })
+
+  useEffect(() => {
+    window.localStorage.setItem('profile-theme', theme)
+  }, [theme])
 
   return (
-    <div className="app-shell">
+    <div className={`app-shell theme-${theme}`}>
       <aside className="left-rail">
-        <div className="rail-title">Profile</div>
+        <div className="rail-top">
+          <div className="rail-title">Profile</div>
+        </div>
         <SidebarTree tree={navTree} activeSlug={slug} />
       </aside>
       <main className="doc-view">
         <header className="doc-header">
-          <h1>{title}</h1>
-          <p>Static profile workspace inspired by Coda-style navigation and document pages.</p>
+          <div>
+            <h1>{title}</h1>
+            <p>{profileData.name}</p>
+          </div>
+          <button className="theme-toggle" type="button" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
+            {theme === 'dark' ? 'Light' : 'Dark'}
+          </button>
         </header>
         {renderPage(slug)}
       </main>
@@ -103,8 +121,8 @@ function SidebarTree({ tree, activeSlug }: { tree: NavNode[]; activeSlug: string
 
 function renderPage(slug: string) {
   if (slug === 'profile') return <ProfilePage />
-  if (slug === 'experience-chart') return <ExperienceChartPage items={experiences} />
-  if (slug === 'experience-timeline') return <ExperienceTablePage items={experiences} />
+  if (slug === 'experience-chart') return <ExperienceChartTable items={experiences} />
+  if (slug === 'experience-timeline') return <ExperienceTimelineBoard items={experiences} />
   if (slug === 'utm-dev') return <UtmPage />
   if (slug === 'resume') return <ResumePage />
   if (slug === 'resume-ko') return <ResumeKoPage />
@@ -121,124 +139,135 @@ function ProfilePage() {
   return (
     <section className="doc-stack">
       <article className="hero-card">
-        <div>
-          <h2>{profileData.name}</h2>
-          <p>{profileData.role}</p>
-          <p>
-            {profileData.location} | {profileData.email} | {profileData.phone}
-          </p>
-        </div>
-        <div className="focus-row">
-          {profileData.focus.map((focus) => (
-            <span className="chip" key={focus}>
-              {focus}
-            </span>
-          ))}
-        </div>
+        <h2>{profileData.role}</h2>
+        <p>
+          {profileData.location} | {profileData.email}
+        </p>
       </article>
-
-      <article className="doc-card">
-        <h3>Summary</h3>
-        <p>{profileData.summary}</p>
-      </article>
-
-      <article className="doc-card">
-        <h3>Links</h3>
-        <ul className="plain-list">
-          {profileData.links.map((link) => (
-            <li key={link.url}>
-              <a href={link.url} target="_blank" rel="noreferrer">
-                {link.label}: {link.url}
-              </a>
-            </li>
-          ))}
-        </ul>
-      </article>
+      <ExperienceTimelineBoard items={experiences} />
+      <ExperienceChartTable items={experiences} />
     </section>
   )
 }
 
-function ExperienceChartPage({ items }: { items: TimelineItem[] }) {
-  const years = useMemo(() => {
-    const starts = items.map((item) => new Date(item.start).getFullYear())
-    const ends = items.map((item) => new Date(item.end).getFullYear())
-    const minYear = Math.min(...starts)
-    const maxYear = Math.max(...ends)
-    return { minYear, maxYear, total: maxYear - minYear + 1 }
+function ExperienceTimelineBoard({ items }: { items: TimelineItem[] }) {
+  const model = useMemo(() => {
+    const minDate = new Date(Math.min(...items.map((item) => new Date(item.start).getTime())))
+    const maxDate = new Date(Math.max(...items.map((item) => new Date(item.end).getTime())))
+    const minYear = minDate.getFullYear()
+    const maxYear = maxDate.getFullYear()
+    const totalQuarters = (maxYear - minYear + 1) * 4
+
+    return { minYear, maxYear, totalQuarters }
   }, [items])
 
-  return (
-    <section className="doc-card">
-      <h3>Experience Chart</h3>
-      <p className="muted">
-        Time range: {years.minYear} - {years.maxYear}
-      </p>
-      <div className="year-grid">
-        {Array.from({ length: years.total }).map((_, index) => (
-          <span key={years.minYear + index}>{years.minYear + index}</span>
-        ))}
-      </div>
-      <div className="bars">
-        {items.map((item) => {
-          const start = new Date(item.start).getFullYear()
-          const end = new Date(item.end).getFullYear()
-          const left = ((start - years.minYear) / years.total) * 100
-          const width = ((end - start + 1) / years.total) * 100
+  const ordered = useMemo(() => items.slice().sort((a, b) => a.start.localeCompare(b.start)), [items])
 
-          return (
-            <div className="bar-row" key={item.id}>
-              <div className="bar-title">
-                <strong>{item.title}</strong>
-                <span>
-                  {item.company} | {item.group}
-                </span>
-              </div>
-              <div className="bar-track">
-                <div className="bar-fill" style={{ left: `${left}%`, width: `${width}%` }} />
-              </div>
-            </div>
-          )
-        })}
+  return (
+    <article className="doc-card">
+      <div className="section-head">
+        <h3>Experience Timeline</h3>
+        <div className="timeline-controls">
+          <span>Multi-Year</span>
+          <span>Today</span>
+          <span>Fit</span>
+        </div>
       </div>
-    </section>
+
+      <div className="timeline-scroll">
+        <div
+          className="timeline-canvas"
+          style={
+            {
+              '--quarters': model.totalQuarters,
+            } as CSSProperties
+          }
+        >
+          <div className="timeline-years">
+            {Array.from({ length: model.maxYear - model.minYear + 1 }).map((_, i) => {
+              const year = model.minYear + i
+              return (
+                <div key={year} style={{ width: `${(4 / model.totalQuarters) * 100}%` }}>
+                  {year}
+                </div>
+              )
+            })}
+          </div>
+
+          <div className="timeline-quarters">
+            {Array.from({ length: model.maxYear - model.minYear + 1 }).map((_, i) => {
+              const year = model.minYear + i
+              return (
+                <div className="quarter-year" key={`qy-${year}`}>
+                  {[1, 2, 3, 4].map((q) => (
+                    <span key={`${year}-q${q}`}>{q}</span>
+                  ))}
+                </div>
+              )
+            })}
+          </div>
+
+          <div className="timeline-grid">
+            {ordered.map((item, idx) => {
+              const s = new Date(item.start)
+              const e = new Date(item.end)
+              const startQuarterIndex = (s.getFullYear() - model.minYear) * 4 + Math.floor(s.getMonth() / 3)
+              const endQuarterIndex = (e.getFullYear() - model.minYear) * 4 + Math.floor(e.getMonth() / 3)
+              const left = (startQuarterIndex / model.totalQuarters) * 100
+              const width = ((endQuarterIndex - startQuarterIndex + 1) / model.totalQuarters) * 100
+
+              return (
+                <div className="timeline-row" key={item.id}>
+                  <span
+                    className="timeline-pill"
+                    style={{
+                      left: `${left}%`,
+                      width: `${Math.max(width, 5)}%`,
+                      top: `${idx * 42 + 8}px`,
+                    }}
+                  >
+                    {item.group} {item.title}
+                  </span>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      </div>
+    </article>
   )
 }
 
-function ExperienceTablePage({ items }: { items: TimelineItem[] }) {
-  const ordered = items.slice().sort((a, b) => b.start.localeCompare(a.start))
+function ExperienceChartTable({ items }: { items: TimelineItem[] }) {
   return (
-    <section className="doc-card">
-      <h3>Experience Timeline</h3>
+    <article className="doc-card">
+      <h3>Experience Chart</h3>
       <div className="table-wrap">
         <table>
           <thead>
             <tr>
-              <th>Period</th>
-              <th>Role</th>
-              <th>Group</th>
-              <th>Highlights</th>
+              <th>Title</th>
+              <th>Start Date</th>
+              <th>End Date</th>
+              <th>설명</th>
             </tr>
           </thead>
           <tbody>
-            {ordered.map((item) => (
+            {items.map((item) => (
               <tr key={item.id}>
                 <td>
-                  {item.start} - {item.end}
+                  <div className="title-main">{item.group}</div>
+                  <div className="title-sub">{item.title}</div>
                 </td>
-                <td>
-                  <strong>{item.title}</strong>
-                  <div className="muted">
-                    {item.company} | {item.location}
-                  </div>
-                </td>
-                <td>{item.group}</td>
-                <td>{item.detail}</td>
+                <td>{item.start}</td>
+                <td>{item.end}</td>
+                <td>{item.tags[0] ?? item.detail}</td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
-    </section>
+    </article>
   )
 }
 
@@ -258,22 +287,12 @@ function UtmPage() {
 
 function ResumePage() {
   return (
-    <section className="doc-stack">
-      <article className="doc-card">
-        <h3>Resume</h3>
-        <p>
-          DevOps engineer focused on Linux operations, incident response, network troubleshooting, and
-          deployment automation in production environments.
-        </p>
-      </article>
-      <article className="doc-card">
-        <h3>Recent Focus</h3>
-        <ul className="plain-list">
-          <li>UTM operations and secure infrastructure management</li>
-          <li>Kubernetes-based cost visibility and observability</li>
-          <li>Reliability-first automation for daily operations</li>
-        </ul>
-      </article>
+    <section className="doc-card">
+      <h3>Resume</h3>
+      <p>
+        DevOps engineer focused on Linux operations, incident response, network troubleshooting, and
+        deployment automation in production environments.
+      </p>
     </section>
   )
 }
