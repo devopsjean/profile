@@ -356,6 +356,12 @@ function ExperienceTimelineBoard({
               const topPx = idx * 42 + 8
               const hasPastOverflow = leftPx < scrollLeft + 2
               const hasFutureOverflow = leftPx + widthPx > scrollLeft + viewportWidth - 2
+              const hasViewportOverlap = leftPx + widthPx > scrollLeft && leftPx < scrollLeft + viewportWidth
+              const minLabelX = scrollLeft + (hasPastOverflow ? 34 : 10)
+              const maxLabelX = Math.max(minLabelX, scrollLeft + viewportWidth - 180)
+              const naturalLabelX = leftPx + 10
+              const labelX = Math.min(Math.max(naturalLabelX, minLabelX), maxLabelX)
+              const labelLeft = Math.max(10, labelX - leftPx)
 
               return (
                 <div key={item.id}>
@@ -388,9 +394,11 @@ function ExperienceTimelineBoard({
                     onClick={() => onSelectItem(item.id)}
                     style={{ top: `${topPx}px`, left: `${leftPx}px`, width: `${widthPx}px` }}
                   >
-                    <span className="timeline-pill-label">
-                      {item.group} {item.title}
-                    </span>
+                    {hasViewportOverlap && (
+                      <span className="timeline-pill-label" style={{ left: `${labelLeft}px` }}>
+                        {item.group} {item.title}
+                      </span>
+                    )}
                   </button>
                 </div>
               )
