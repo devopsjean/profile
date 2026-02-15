@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type MouseEvent } from 'react'
 import { Navigate, Route, Routes, useNavigate, useParams } from 'react-router-dom'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
@@ -163,6 +163,9 @@ function SidebarTree({
 function ProfilePage() {
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null)
   const [timelineJumpItemId, setTimelineJumpItemId] = useState<string | null>(null)
+  const [copiedEmail, setCopiedEmail] = useState(false)
+  const githubUrl = profileData.links.find((link) => link.label === 'GitHub')?.url ?? 'https://github.com/devopsjean'
+  const linkedinUrl = profileData.links.find((link) => link.label === 'LinkedIn')?.url ?? 'https://www.linkedin.com/in/devopsjeanmc'
 
   const handleSelectTimelineItem = (itemId: string) => {
     setSelectedItemId(itemId)
@@ -179,13 +182,34 @@ function ProfilePage() {
     })
   }
 
+  const handleCopyEmail = async (event: MouseEvent<HTMLAnchorElement>) => {
+    event.preventDefault()
+    try {
+      await navigator.clipboard.writeText(profileData.email)
+      setCopiedEmail(true)
+      window.setTimeout(() => setCopiedEmail(false), 1500)
+    } catch {
+      setCopiedEmail(false)
+    }
+  }
+
   return (
     <section className="profile-dashboard">
       <article className="hero-card">
         <h2>{profileData.role}</h2>
-        <p>
-          {profileData.location} | {profileData.email}
-        </p>
+        <p>{profileData.location}</p>
+        <div className="contact-links">
+          <a href={`mailto:${profileData.email}`} onClick={handleCopyEmail} title="Click to copy email address">
+            <span aria-hidden>📧</span> {profileData.email}
+          </a>
+          <a href={githubUrl} target="_blank" rel="noreferrer">
+            <span aria-hidden>🐙</span> {githubUrl}
+          </a>
+          <a href={linkedinUrl} target="_blank" rel="noreferrer">
+            <span aria-hidden>🔗</span> {linkedinUrl}
+          </a>
+          {copiedEmail && <span className="copy-state">Copied</span>}
+        </div>
       </article>
 
       <article id="timeline-section" className="doc-card dashboard-timeline">
