@@ -234,6 +234,29 @@ body {
   font-size: 13px;
 }
 
+.detail-link-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 56px;
+  padding: 5px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+  color: var(--text);
+  text-decoration: none;
+  font-size: 13px;
+}
+
+.detail-link-btn:hover {
+  border-color: var(--accent);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+
+.detail-empty {
+  color: var(--muted);
+}
+
 .social-icon {
   width: 16px;
   height: 16px;

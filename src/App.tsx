@@ -21,6 +21,7 @@ type TimelineItem = {
   end: string
   tags: string[]
   detail: string
+  detailsUrl?: string
 }
 
 type ThemeMode = 'dark' | 'light'
@@ -489,6 +490,7 @@ function ExperienceChartTable({
               <th>Start Date</th>
               <th>End Date</th>
               <th>Description</th>
+              <th>Details</th>
             </tr>
           </thead>
           <tbody>
@@ -507,6 +509,21 @@ function ExperienceChartTable({
                 <td>{item.start}</td>
                 <td>{item.end}</td>
                 <td>{item.tags[0] ?? item.detail}</td>
+                <td>
+                  {item.detailsUrl ? (
+                    <a
+                      className="detail-link-btn"
+                      href={item.detailsUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      onDoubleClick={(event) => event.stopPropagation()}
+                    >
+                      View
+                    </a>
+                  ) : (
+                    <span className="detail-empty">-</span>
+                  )}
+                </td>
               </tr>
             ))}
           </tbody>
