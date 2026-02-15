@@ -201,7 +201,7 @@ function ProfilePage() {
         <p>{profileData.location}</p>
         <div className="contact-links">
           <a href={`mailto:${profileData.email}`} onClick={handleCopyEmail} title="Click to copy email address">
-            <span aria-hidden>📧</span> {profileData.email}
+            <GmailIcon /> {profileData.email}
           </a>
           <a href={githubUrl} target="_blank" rel="noreferrer">
             <GitHubIcon /> {githubUrl}
@@ -620,6 +620,18 @@ function GitHubIcon() {
   return (
     <svg aria-hidden="true" className="social-icon" viewBox="0 0 24 24" fill="currentColor">
       <path d="M12 0.296C5.373 0.296 0 5.67 0 12.296c0 5.302 3.438 9.8 8.205 11.387.6.111.82-.261.82-.58 0-.287-.01-1.046-.016-2.053-3.338.726-4.042-1.609-4.042-1.609-.546-1.387-1.334-1.756-1.334-1.756-1.089-.744.083-.729.083-.729 1.205.084 1.84 1.237 1.84 1.237 1.07 1.834 2.809 1.304 3.495.997.108-.776.418-1.304.762-1.603-2.665-.303-5.467-1.333-5.467-5.931 0-1.31.468-2.381 1.236-3.221-.124-.303-.536-1.524.117-3.176 0 0 1.008-.323 3.3 1.23a11.5 11.5 0 0 1 3.004-.404c1.02.005 2.047.137 3.005.404 2.29-1.553 3.296-1.23 3.296-1.23.655 1.652.243 2.873.119 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.625-5.48 5.921.43.37.813 1.102.813 2.222 0 1.604-.015 2.899-.015 3.293 0 .322.216.696.825.578C20.565 22.092 24 17.596 24 12.296 24 5.67 18.627 0.296 12 0.296Z" />
+    </svg>
+  )
+}
+
+function GmailIcon() {
+  return (
+    <svg aria-hidden="true" className="social-icon" viewBox="0 0 24 24">
+      <path fill="#EA4335" d="M12 12.713 3.6 6.527V19.2A1.8 1.8 0 0 0 5.4 21h2.88V12.72L12 15.456l3.72-2.736V21h2.88a1.8 1.8 0 0 0 1.8-1.8V6.527L12 12.713Z" />
+      <path fill="#34A853" d="M15.72 12.72V21H8.28v-8.28L12 15.456l3.72-2.736Z" />
+      <path fill="#FBBC04" d="M20.4 6.527V7.2l-4.68 3.44V6.072l2.88 2.16 1.8-1.705Z" />
+      <path fill="#4285F4" d="M3.6 6.527V7.2l4.68 3.44V6.072L5.4 8.232 3.6 6.527Z" />
+      <path fill="#C5221F" d="M3.6 6.527 5.4 4.8 12 9.6l6.6-4.8 1.8 1.727L12 12.713 3.6 6.527Z" />
     </svg>
   )
 }
