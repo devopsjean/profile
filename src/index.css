@@ -88,6 +88,36 @@ body {
   cursor: pointer;
 }
 
+.tree-folder-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  border-radius: 8px;
+}
+
+.tree-folder-link {
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+  padding: 8px 10px;
+  cursor: pointer;
+  border-radius: 8px 0 0 8px;
+}
+
+.tree-folder-toggle {
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  padding: 8px 10px;
+  cursor: pointer;
+  border-radius: 0 8px 8px 0;
+}
+
+.tree-folder-row:hover {
+  background: var(--hover);
+}
+
 .tree-folder.active {
   background: #3d66a6;
   color: #f2f6ff;
@@ -154,7 +184,7 @@ body {
 
 .profile-dashboard {
   display: grid;
-  grid-template-rows: auto minmax(500px, 70vh) minmax(260px, 50vh);
+  grid-template-rows: auto minmax(560px, 74vh) minmax(300px, 54vh);
   gap: 12px;
   min-height: max-content;
 }
@@ -342,6 +372,7 @@ body {
 
 .table-wrap.compact {
   flex: 1;
+  max-height: 54vh;
 }
 
 table {
@@ -371,6 +402,38 @@ thead th {
   top: 0;
   z-index: 2;
   background: var(--panel);
+}
+
+.markdown-card {
+  min-height: calc(100vh - 140px);
+  overflow: auto;
+}
+
+.markdown-body {
+  line-height: 1.6;
+}
+
+.markdown-body h1,
+.markdown-body h2,
+.markdown-body h3 {
+  margin-top: 20px;
+  margin-bottom: 10px;
+}
+
+.markdown-body pre {
+  overflow: auto;
+  background: #141821;
+  padding: 12px;
+  border-radius: 8px;
+}
+
+.theme-light .markdown-body pre {
+  background: #eef2f8;
+}
+
+.markdown-body table {
+  display: block;
+  overflow: auto;
 }
 
 .selected-row td {

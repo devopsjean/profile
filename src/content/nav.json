@@ -7,5 +7,12 @@
       { "title": "Timeline", "type": "anchor", "slug": "profile", "targetId": "timeline-section" },
       { "title": "Timetable", "type": "anchor", "slug": "profile", "targetId": "timetable-section" }
     ]
+  },
+  {
+    "title": "Projects",
+    "type": "folder",
+    "children": [
+      { "title": "SRE-mini-project", "type": "page", "slug": "sre-mini-project" }
+    ]
   }
 ]

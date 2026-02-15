@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { Navigate, Route, Routes, useNavigate, useParams } from 'react-router-dom'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 import navData from './content/nav.json'
 import profileData from './content/profile.json'
 import timelineData from './content/timeline.json'
@@ -41,8 +43,12 @@ function Workspace() {
   const { slug = 'profile' } = useParams<{ slug: string }>()
   const navigate = useNavigate()
   const normalizedSlug = normalizeSlug(slug)
-  const defaultMenuId = slug === 'experience-timeline' ? 'Profile/Timeline' : slug === 'experience-chart' ? 'Profile/Timetable' : 'Profile'
-  const [activeMenuId, setActiveMenuId] = useState(defaultMenuId)
+  const [activeMenuId, setActiveMenuId] = useState(() => {
+    if (slug === 'experience-timeline') return 'Profile/Timeline'
+    if (slug === 'experience-chart') return 'Profile/Timetable'
+    if (slug === 'sre-mini-project') return 'Projects/SRE-mini-project'
+    return 'Profile'
+  })
   const [theme, setTheme] = useState<ThemeMode>(() => {
     const stored = window.localStorage.getItem('profile-theme')
     if (stored === 'dark' || stored === 'light') return stored
@@ -54,19 +60,20 @@ function Workspace() {
   }, [theme])
 
   useEffect(() => {
-    if (slug === 'experience-timeline') {
-      requestAnimationFrame(() => scrollToTarget('timeline-section'))
-    } else if (slug === 'experience-chart') {
-      requestAnimationFrame(() => scrollToTarget('timetable-section'))
+    if (normalizedSlug !== slug) {
+      navigate(`/${normalizedSlug}`, { replace: true })
+      return
     }
-  }, [slug])
 
-  useEffect(() => {
-    if (normalizedSlug !== slug) navigate(`/${normalizedSlug}`, { replace: true })
-  }, [navigate, normalizedSlug, slug])
+    if (normalizedSlug === 'profile') {
+      const sectionToFocus = activeMenuId === 'Profile/Timetable' ? 'timetable-section' : 'timeline-section'
+      requestAnimationFrame(() => scrollToTarget(sectionToFocus))
+    }
+  }, [activeMenuId, navigate, normalizedSlug, slug])
 
   const handleMenuAction = (node: NavPage | NavAnchor, menuId: string) => {
     setActiveMenuId(menuId)
+
     if (node.type === 'page') {
       navigate(`/${node.slug}`)
       return
@@ -86,17 +93,19 @@ function Workspace() {
         <div className="rail-title">Profile</div>
         <SidebarTree tree={navTree} activeMenuId={activeMenuId} onMenuAction={handleMenuAction} />
       </aside>
+
       <main className="doc-view">
         <header className="doc-header">
           <div>
-            <h1>Profile</h1>
+            <h1>{normalizedSlug === 'sre-mini-project' ? 'SRE-mini-project' : 'Profile'}</h1>
             <p>{profileData.name}</p>
           </div>
           <button className="theme-toggle" type="button" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
             {theme === 'dark' ? 'Light' : 'Dark'}
           </button>
         </header>
-        <ProfilePage />
+
+        {normalizedSlug === 'profile' ? <ProfilePage /> : <SreMiniProjectPage />}
       </main>
     </div>
   )
@@ -111,7 +120,7 @@ function SidebarTree({
   activeMenuId: string
   onMenuAction: (node: NavPage | NavAnchor, menuId: string) => void
 }) {
-  const [openFolders, setOpenFolders] = useState<Record<string, boolean>>({ Profile: true })
+  const [openFolders, setOpenFolders] = useState<Record<string, boolean>>({ Profile: true, Projects: true })
   const toggleFolder = (path: string) => setOpenFolders((prev) => ({ ...prev, [path]: !prev[path] }))
 
   const renderNode = (node: NavNode, path: string) => {
@@ -119,17 +128,21 @@ function SidebarTree({
       const open = openFolders[path] ?? false
       return (
         <li key={path}>
-          <button
-            className={`tree-folder ${activeMenuId === path ? 'active' : ''}`}
-            type="button"
-            onClick={() => {
-              if (node.slug) onMenuAction({ title: node.title, type: 'page', slug: node.slug }, path)
-              else toggleFolder(path)
-            }}
-          >
-            <span className="chevron">{open ? '▾' : '▸'}</span>
-            {node.title}
-          </button>
+          <div className={`tree-folder-row ${activeMenuId === path ? 'active' : ''}`}>
+            <button
+              className="tree-folder-link"
+              type="button"
+              onClick={() => {
+                if (node.slug) onMenuAction({ title: node.title, type: 'page', slug: node.slug }, path)
+                else toggleFolder(path)
+              }}
+            >
+              {node.title}
+            </button>
+            <button className="tree-folder-toggle" type="button" onClick={() => toggleFolder(path)} aria-label="Toggle section">
+              {open ? '▾' : '▸'}
+            </button>
+          </div>
           {open && <ul className="tree-list">{node.children.map((child) => renderNode(child, `${path}/${child.title}`))}</ul>}
         </li>
       )
@@ -137,11 +150,7 @@ function SidebarTree({
 
     return (
       <li key={path}>
-        <button
-          className={`tree-page ${activeMenuId === path ? 'active' : ''}`}
-          type="button"
-          onClick={() => onMenuAction(node, path)}
-        >
+        <button className={`tree-page ${activeMenuId === path ? 'active' : ''}`} type="button" onClick={() => onMenuAction(node, path)}>
           {node.title}
         </button>
       </li>
@@ -350,12 +359,53 @@ function ExperienceChartTable({ items, selectedItemId }: { items: TimelineItem[]
   )
 }
 
+function SreMiniProjectPage() {
+  const [markdown, setMarkdown] = useState('')
+  const [error, setError] = useState<string | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const controller = new AbortController()
+    const readmeUrl = 'https://raw.githubusercontent.com/devopsjean/mini-project/main/README.md'
+    fetch(readmeUrl, { signal: controller.signal })
+      .then((response) => {
+        if (!response.ok) throw new Error(`Failed to load README (${response.status})`)
+        return response.text()
+      })
+      .then((text) => {
+        setMarkdown(text)
+        setLoading(false)
+      })
+      .catch((err: Error) => {
+        if (err.name === 'AbortError') return
+        setError(err.message)
+        setLoading(false)
+      })
+
+    return () => controller.abort()
+  }, [])
+
+  return (
+    <section className="doc-card markdown-card">
+      <h3>SRE-mini-project README Preview</h3>
+      {loading && <p>Loading README preview...</p>}
+      {error && <p>{error}</p>}
+      {!loading && !error && (
+        <div className="markdown-body">
+          <ReactMarkdown remarkPlugins={[remarkGfm]}>{markdown}</ReactMarkdown>
+        </div>
+      )}
+    </section>
+  )
+}
+
 function quarterIndexFromModel(date: Date, minYear: number) {
   return (date.getFullYear() - minYear) * 4 + Math.floor(date.getMonth() / 3)
 }
 
 function normalizeSlug(slug: string) {
   if (slug === 'experience-timeline' || slug === 'experience-chart') return 'profile'
+  if (slug === 'sre-mini-project' || slug === 'profile') return slug
   return 'profile'
 }
 
