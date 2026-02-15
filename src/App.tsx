@@ -216,6 +216,7 @@ function ExperienceTimelineBoard({
   jumpToItemId: string | null
 }) {
   const scrollRef = useRef<HTMLDivElement>(null)
+  const initialFocusDoneRef = useRef(false)
   const [mode, setMode] = useState<TimelineMode>('fit')
   const [quarterWidth, setQuarterWidth] = useState(58)
   const [scrollLeft, setScrollLeft] = useState(0)
@@ -240,6 +241,23 @@ function ExperienceTimelineBoard({
   const currentQuarterIndex = quarterIndexFromModel(new Date(), model.minYear)
   const canvasWidth = model.totalQuarters * quarterWidth
   const nowX = quarterPositionFromModel(new Date(), model.minYear) * quarterWidth
+  const nearestEventRowIndex = useMemo(() => {
+    const nowPos = quarterPositionFromModel(new Date(), model.minYear)
+    let nearestIndex = -1
+    let nearestDistance = Number.POSITIVE_INFINITY
+
+    ordered.forEach((item, index) => {
+      const startPos = quarterPositionFromModel(new Date(item.start), model.minYear)
+      const endPos = quarterPositionFromModel(addDays(new Date(item.end), 1), model.minYear)
+      const distance = nowPos < startPos ? startPos - nowPos : nowPos > endPos ? nowPos - endPos : 0
+      if (distance < nearestDistance) {
+        nearestDistance = distance
+        nearestIndex = index
+      }
+    })
+
+    return nearestIndex
+  }, [model.minYear, ordered])
 
   const scrollToQuarter = (quarter: number, width: number) => {
     if (!scrollRef.current) return
@@ -282,6 +300,23 @@ function ExperienceTimelineBoard({
     // Initial view must open in fit mode.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  useEffect(() => {
+    const node = scrollRef.current
+    if (!node || nearestEventRowIndex < 0 || initialFocusDoneRef.current) return
+
+    initialFocusDoneRef.current = true
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        const stickyHeight = (node.querySelector('.timeline-sticky') as HTMLElement | null)?.offsetHeight ?? 64
+        const targetTop = nearestEventRowIndex * 42 + 8
+        node.scrollTo({
+          top: Math.max(targetTop - stickyHeight - 10, 0),
+          behavior: 'smooth',
+        })
+      })
+    })
+  }, [nearestEventRowIndex])
 
   useEffect(() => {
     const node = scrollRef.current
