@@ -139,7 +139,7 @@
     "location": "Online",
     "start": "2025-12-01",
     "end": "2026-01-15",
-    "tags": ["Certificate"],
+    "tags": ["e-learning"],
     "detail": "Linux Foundation"
   },
   {
@@ -161,7 +161,7 @@
     "location": "Online",
     "start": "2025-12-20",
     "end": "2026-02-10",
-    "tags": ["Certificate"],
+    "tags": ["e-learning"],
     "detail": "Linux Foundation"
   },
   {
@@ -172,7 +172,7 @@
     "location": "Online",
     "start": "2025-12-28",
     "end": "2026-02-15",
-    "tags": ["Certificate"],
+    "tags": ["e-learning"],
     "detail": "Linux Foundation"
   },
   {
@@ -183,8 +183,52 @@
     "location": "Online",
     "start": "2026-01-11",
     "end": "2026-01-11",
-    "tags": ["Certificate"],
+    "tags": ["e-learning"],
     "detail": "Linux Foundation"
+  },
+  {
+    "id": "lfc148",
+    "group": "Linux Foundation",
+    "title": "LFS148: Getting Started with OpenTelemetry",
+    "company": "Linux Foundation",
+    "location": "Online",
+    "start": "2026-02-18",
+    "end": "2026-02-19",
+    "tags": ["e-learning"],
+    "detail": "https://www.credly.com/badges/d0a72cb7-c3b9-4175-ac49-1f9d65d7bac6/linked_in_profile"
+  },
+  {
+    "id": "lfel1009",
+    "group": "Linux Foundation",
+    "title": "LFEL1009: Getting Started with OpenTofu",
+    "company": "Linux Foundation",
+    "location": "Online",
+    "start": "2026-02-18",
+    "end": "2026-02-18",
+    "tags": ["e-learning"],
+    "detail": "https://www.credly.com/badges/985e4be2-0e22-49a5-8cf1-3cdec52be525/linked_in_profile"
+  },
+  {
+    "id": "lfs169",
+    "group": "Linux Foundation",
+    "title": "LFS169: Introduction to GitOps",
+    "company": "Linux Foundation",
+    "location": "Online",
+    "start": "2026-02-17",
+    "end": "2026-02-17",
+    "tags": ["e-learning"],
+    "detail": "https://www.credly.com/badges/b4cddcd2-c3c5-4c58-b6ba-70ae608ae113/linked_in_profile"
+  },
+  {
+    "id": "lfs162",
+    "group": "Linux Foundation",
+    "title": "LFS162: Introduction to DevOps and Site Reliability Engineering",
+    "company": "Linux Foundation",
+    "location": "Online",
+    "start": "2026-02-16",
+    "end": "2026-02-16",
+    "tags": ["e-learning"],
+    "detail": "https://www.credly.com/badges/d6f28372-02d5-4a17-8b4f-b7fc6e62e30b/linked_in_profile"
   },
   {
     "id": "sre-mini-project",
@@ -196,6 +240,6 @@
     "end": "2026-02-09",
     "tags": ["Personal Project"],
     "detail": "Personal Project",
-    "detailsUrl": "https://github.com/devopsjean/mini-project"
+    "detailsUrl": "https://github.com/devopsjean/mini-project/tree/post-submission"
   }
 ]
