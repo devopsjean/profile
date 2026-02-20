@@ -577,7 +577,7 @@ function RoadmapPage({ items }: { items: RoadmapItem[] }) {
       <article className="doc-card skilltree-card">
         <div className="skilltree-head">
           <h3>DevOps & SRE Skill Tree</h3>
-          <p>Start at the root below, then scroll up to explore branches and leaf skills.</p>
+          <p>Start at the root zone, scroll up for advanced branches and down for root branches.</p>
         </div>
 
         <div className="skilltree-scroll" ref={treeScrollRef}>
@@ -606,11 +606,29 @@ function RoadmapPage({ items }: { items: RoadmapItem[] }) {
               />
             ))}
 
+            {layout.rootAreas.map((area) => (
+              <path
+                key={`root-lower-${area.area}`}
+                d={`M ${layout.root.x} ${layout.root.y} C ${layout.root.x + area.side * 24} ${layout.root.y + 120}, ${area.x - area.side * 30} ${area.y - 82}, ${area.x} ${area.y}`}
+                className="skilltree-branch-main root-zone"
+                style={{ stroke: area.color }}
+              />
+            ))}
+
             {layout.topics.map((topic) => (
               <path
                 key={`twig-${topic.id}`}
                 d={`M ${topic.areaX} ${topic.areaY} C ${topic.areaX + topic.side * 45} ${topic.areaY - 78}, ${topic.x - topic.side * 48} ${topic.y + 72}, ${topic.x} ${topic.y}`}
                 className="skilltree-branch-sub"
+                style={{ stroke: topic.color }}
+              />
+            ))}
+
+            {layout.rootTopics.map((topic) => (
+              <path
+                key={`root-twig-${topic.id}`}
+                d={`M ${topic.areaX} ${topic.areaY} C ${topic.areaX + topic.side * 42} ${topic.areaY + 62}, ${topic.x - topic.side * 44} ${topic.y - 54}, ${topic.x} ${topic.y}`}
+                className="skilltree-branch-sub root-zone"
                 style={{ stroke: topic.color }}
               />
             ))}
@@ -630,8 +648,32 @@ function RoadmapPage({ items }: { items: RoadmapItem[] }) {
               </g>
             ))}
 
+            {layout.rootAreas.map((area) => (
+              <g key={`root-node-${area.area}`} transform={`translate(${area.x}, ${area.y})`}>
+                <rect x="-92" y="-16" width="184" height="32" rx="16" className="skilltree-area-node root-zone" />
+                <text textAnchor="middle" y="5" className="skilltree-area-label">
+                  {area.area}
+                </text>
+              </g>
+            ))}
+
             {layout.topics.map((topic) => (
               <a key={topic.id} href={topic.link} target="_blank" rel="noreferrer">
+                <g transform={`translate(${topic.x}, ${topic.y})`} className="skilltree-topic-group">
+                  <circle r={topic.radius} className="skilltree-topic-orb" style={{ stroke: topic.statusColor }} />
+                  <circle r={Math.max(topic.radius - 6, 7)} className="skilltree-topic-core" style={{ fill: topic.statusColor }} />
+                  <text x={topic.labelOffsetX} y="-3" textAnchor={topic.textAnchor} className="skilltree-topic-label">
+                    {topic.topic}
+                  </text>
+                  <text x={topic.labelOffsetX} y="14" textAnchor={topic.textAnchor} className="skilltree-topic-meta">
+                    {topic.status} · {topic.progress}%
+                  </text>
+                </g>
+              </a>
+            ))}
+
+            {layout.rootTopics.map((topic) => (
+              <a key={`root-${topic.id}`} href={topic.link} target="_blank" rel="noreferrer">
                 <g transform={`translate(${topic.x}, ${topic.y})`} className="skilltree-topic-group">
                   <circle r={topic.radius} className="skilltree-topic-orb" style={{ stroke: topic.statusColor }} />
                   <circle r={Math.max(topic.radius - 6, 7)} className="skilltree-topic-core" style={{ fill: topic.statusColor }} />
@@ -748,14 +790,19 @@ function buildRoadmapSkillTreeLayout(groups: Array<{ area: string; tasks: Roadma
     'Not Started': '#8892a8',
   }
 
+  const rootZoneAreas = new Set(['Mathematics', 'Mathmatics', 'Python'])
+  const lowerGroups = groups.filter((group) => rootZoneAreas.has(group.area))
+  const upperGroups = groups.filter((group) => !rootZoneAreas.has(group.area))
+
   const width = 1700
-  const height = 2200
+  const height = 1800
   const rootX = width / 2
-  const rootY = height - 130
-  const areaYBase = rootY - 330
-  const slots = [-1, 1, -2, 2, -3, 3, -4, 4]
+  const rootY = height - 460
+  const areaYBase = rootY - 230
+  const slots = [-1, 1, -2, 2, -3, 3]
 
   const areas: Array<{ area: string; x: number; y: number; color: string; side: -1 | 1 }> = []
+  const rootAreas: Array<{ area: string; x: number; y: number; color: string; side: -1 | 1 }> = []
   const topics: Array<{
     id: string
     topic: string
@@ -774,20 +821,38 @@ function buildRoadmapSkillTreeLayout(groups: Array<{ area: string; tasks: Roadma
     textAnchor: 'start' | 'end'
   }> = []
 
-  groups.forEach((group, idx) => {
+  const rootTopics: Array<{
+    id: string
+    topic: string
+    status: RoadmapStatus
+    progress: number
+    link: string
+    x: number
+    y: number
+    areaX: number
+    areaY: number
+    side: -1 | 1
+    color: string
+    statusColor: string
+    radius: number
+    labelOffsetX: number
+    textAnchor: 'start' | 'end'
+  }> = []
+
+  upperGroups.forEach((group, idx) => {
     const slot = slots[idx] ?? (idx % 2 === 0 ? -Math.ceil((idx + 1) / 2) : Math.ceil((idx + 1) / 2))
     const side: -1 | 1 = slot < 0 ? -1 : 1
     const depth = Math.abs(slot)
-    const x = rootX + side * (200 + (depth - 1) * 190)
-    const y = areaYBase - (depth % 2) * 75
+    const x = rootX + side * (220 + (depth - 1) * 170)
+    const y = areaYBase - (depth - 1) * 86 - (idx % 2) * 16
     const color = areaPalette[idx % areaPalette.length]
     areas.push({ area: group.area, x, y, color, side })
 
     group.tasks.forEach((task, taskIdx) => {
-      const yStep = 170
-      const yStart = 460 + depth * 25 + (idx % 2) * 35
-      const topicY = yStart + taskIdx * yStep
-      const topicX = x + side * (130 + (taskIdx % 2) * 64)
+      const tier = Math.floor(taskIdx / 2)
+      const pairShift = taskIdx % 2 === 0 ? -1 : 1
+      const topicY = y - 96 - tier * 84 - (taskIdx % 2) * 12
+      const topicX = x + side * (135 + tier * 36) + pairShift * 44
       topics.push({
         id: task.id,
         topic: task.topic,
@@ -795,7 +860,7 @@ function buildRoadmapSkillTreeLayout(groups: Array<{ area: string; tasks: Roadma
         progress: task.progress,
         link: task.link,
         x: topicX,
-        y: Math.min(topicY, y - 110),
+        y: topicY,
         areaX: x,
         areaY: y,
         side,
@@ -808,7 +873,38 @@ function buildRoadmapSkillTreeLayout(groups: Array<{ area: string; tasks: Roadma
     })
   })
 
-  return { width, height, root: { x: rootX, y: rootY }, areas, topics }
+  const lowerSideSlots: Array<-1 | 1> = [-1, 1]
+  lowerGroups.forEach((group, idx) => {
+    const side = lowerSideSlots[idx % lowerSideSlots.length]
+    const x = rootX + side * 240
+    const y = rootY + 170
+    const color = areaPalette[(idx + upperGroups.length) % areaPalette.length]
+    rootAreas.push({ area: group.area, x, y, color, side })
+
+    group.tasks.forEach((task, taskIdx) => {
+      const topicY = y + 98 + taskIdx * 84
+      const topicX = x + side * (124 + (taskIdx % 2) * 36)
+      rootTopics.push({
+        id: task.id,
+        topic: task.topic,
+        status: task.status,
+        progress: task.progress,
+        link: task.link,
+        x: topicX,
+        y: topicY,
+        areaX: x,
+        areaY: y,
+        side,
+        color,
+        statusColor: statusColor[task.status],
+        radius: 12 + Math.round(task.progress / 20),
+        labelOffsetX: side > 0 ? 28 : -28,
+        textAnchor: side > 0 ? 'start' : 'end',
+      })
+    })
+  })
+
+  return { width, height, root: { x: rootX, y: rootY }, areas, topics, rootAreas, rootTopics }
 }
 
 function GitHubIcon() {

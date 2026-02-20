@@ -611,16 +611,21 @@ thead th {
 
 .skilltree-branch-main {
   fill: none;
-  stroke-width: 5;
-  opacity: 0.38;
+  stroke-width: 4.2;
+  opacity: 0.42;
   stroke-linecap: round;
 }
 
 .skilltree-branch-sub {
   fill: none;
-  stroke-width: 3;
-  opacity: 0.38;
+  stroke-width: 2.6;
+  opacity: 0.44;
   stroke-linecap: round;
+}
+
+.skilltree-branch-main.root-zone,
+.skilltree-branch-sub.root-zone {
+  opacity: 0.5;
 }
 
 .skilltree-root-core {
@@ -641,6 +646,11 @@ thead th {
   fill: rgba(26, 29, 37, 0.9);
   stroke: rgba(141, 152, 178, 0.45);
   stroke-width: 1;
+}
+
+.skilltree-area-node.root-zone {
+  fill: rgba(39, 27, 31, 0.9);
+  stroke: rgba(203, 108, 124, 0.55);
 }
 
 .skilltree-area-label {
@@ -665,7 +675,7 @@ thead th {
 
 .skilltree-topic-label {
   fill: #ececf2;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
 }
 
