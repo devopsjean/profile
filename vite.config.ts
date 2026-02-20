@@ -10,7 +10,8 @@ function readGitMeta(command: string, fallback: string) {
   }
 }
 
-const commitCount = readGitMeta('git rev-list --count HEAD', '0')
+const ciRunNumber = process.env.GITHUB_RUN_NUMBER?.trim()
+const commitCount = ciRunNumber && /^\d+$/.test(ciRunNumber) ? ciRunNumber : readGitMeta('git rev-list --count HEAD', '0')
 const commitHash = readGitMeta('git rev-parse --short HEAD', 'local')
 const releaseStage = 'Preview'
 const appVersion = `0.0.${commitCount}`
