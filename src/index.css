@@ -611,13 +611,14 @@ thead th {
 
 .skilltree-scroll {
   height: calc(100vh - 220px);
-  overflow: auto;
+  overflow: hidden;
 }
 
 .skilltree-svg {
   display: block;
   width: 100%;
-  min-width: 1120px;
+  height: 100%;
+  min-width: 0;
 }
 
 .skilltree-bg {
