@@ -558,160 +558,124 @@ thead th {
   gap: 7px;
 }
 
-.roadmap-layout {
+.skilltree-layout {
   display: grid;
-  gap: 12px;
 }
 
-.roadmap-summary-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 10px;
-}
-
-.roadmap-summary-head h3 {
-  margin: 0;
-  font-size: 24px;
-}
-
-.roadmap-summary-head span {
-  color: var(--muted);
-  font-size: 13px;
-}
-
-.roadmap-summary-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
-  gap: 10px;
-}
-
-.roadmap-kpi {
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  padding: 10px;
-  background: color-mix(in srgb, var(--panel) 85%, transparent);
-}
-
-.roadmap-kpi h4 {
-  margin: 0 0 8px;
-  font-size: 14px;
-}
-
-.roadmap-kpi p {
-  margin: 7px 0 0;
-  color: var(--muted);
-  font-size: 13px;
-}
-
-.roadmap-progress-track {
-  height: 7px;
-  border-radius: 999px;
-  background: var(--line);
+.skilltree-card {
+  padding: 0;
   overflow: hidden;
+  background:
+    radial-gradient(circle at 50% 96%, rgba(205, 28, 50, 0.25), transparent 28%),
+    radial-gradient(circle at 50% 8%, rgba(97, 109, 165, 0.16), transparent 22%),
+    #131318;
 }
 
-.roadmap-progress-fill {
-  height: 100%;
-  border-radius: 999px;
-  background: linear-gradient(90deg, #5e9bff, #8ce3cc);
+.skilltree-head {
+  padding: 14px 16px 10px;
+  border-bottom: 1px solid var(--line);
+  background: linear-gradient(180deg, rgba(22, 22, 30, 0.8), rgba(22, 22, 30, 0.35));
 }
 
-.roadmap-board {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
+.skilltree-head h3 {
+  margin: 0;
+  font-size: 30px;
 }
 
-.roadmap-board section {
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  padding: 10px;
+.skilltree-head p {
+  margin: 8px 0 0;
+  color: #b9bcc7;
 }
 
-.roadmap-board h4 {
-  margin: 0 0 10px;
-}
-
-.roadmap-board-list {
-  display: grid;
-  gap: 8px;
-}
-
-.roadmap-board-card {
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  padding: 8px;
-  color: var(--text);
-  text-decoration: none;
-  background: var(--pill);
-  display: grid;
-  gap: 4px;
-}
-
-.roadmap-board-card:hover {
-  border-color: var(--accent);
-}
-
-.roadmap-board-card span,
-.roadmap-board-card em {
-  font-style: normal;
-  color: var(--muted);
-  font-size: 12px;
-}
-
-.roadmap-mindmap-wrap {
+.skilltree-scroll {
+  height: calc(100vh - 220px);
   overflow: auto;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  background: radial-gradient(circle at 72% 45%, rgba(141, 160, 255, 0.15), transparent 40%);
 }
 
-.roadmap-mindmap-svg {
+.skilltree-svg {
   display: block;
   width: 100%;
-  min-width: 960px;
+  min-width: 1120px;
 }
 
-.roadmap-root-node {
-  fill: transparent;
-  stroke: var(--line);
-  stroke-width: 1.5;
+.skilltree-bg {
+  fill: #101116;
 }
 
-.roadmap-root-label {
-  fill: var(--text);
-  font-size: 26px;
-  font-weight: 700;
+.skilltree-trunk {
+  stroke: url(#trunkGlow);
+  stroke-width: 14;
+  stroke-linecap: round;
+  opacity: 0.75;
 }
 
-.roadmap-area-node {
-  fill: color-mix(in srgb, var(--panel) 82%, transparent);
-  stroke: var(--line);
+.skilltree-branch-main {
+  fill: none;
+  stroke-width: 5;
+  opacity: 0.38;
+  stroke-linecap: round;
+}
+
+.skilltree-branch-sub {
+  fill: none;
+  stroke-width: 3;
+  opacity: 0.38;
+  stroke-linecap: round;
+}
+
+.skilltree-root-core {
+  fill: #d22f43;
+  stroke: #ff8f99;
+  stroke-width: 1.4;
+  filter: drop-shadow(0 0 16px rgba(210, 47, 67, 0.85));
+}
+
+.skilltree-root-label {
+  fill: #f0d8dd;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+}
+
+.skilltree-area-node {
+  fill: rgba(26, 29, 37, 0.9);
+  stroke: rgba(141, 152, 178, 0.45);
   stroke-width: 1;
 }
 
-.roadmap-area-label {
-  fill: var(--text);
-  font-size: 14px;
+.skilltree-area-label {
+  fill: #d5d9e6;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.skilltree-topic-group {
+  cursor: pointer;
+}
+
+.skilltree-topic-orb {
+  fill: rgba(20, 22, 30, 0.92);
+  stroke-width: 1.6;
+}
+
+.skilltree-topic-core {
+  opacity: 0.95;
+}
+
+.skilltree-topic-label {
+  fill: #ececf2;
+  font-size: 12px;
   font-weight: 600;
 }
 
-.roadmap-topic-node {
-  fill: color-mix(in srgb, var(--pill) 90%, transparent);
-  stroke: var(--line);
-  stroke-width: 1;
+.skilltree-topic-meta {
+  fill: #9aa3b2;
+  font-size: 11px;
 }
 
-.roadmap-topic-label {
-  fill: var(--text);
-  font-size: 12px;
-}
-
-.roadmap-topic-group:hover .roadmap-topic-node {
-  stroke: var(--accent);
-  stroke-width: 1.2;
+.skilltree-topic-group:hover .skilltree-topic-orb {
+  stroke: #c8d4ff;
 }
 
 @media (max-width: 960px) {
@@ -742,7 +706,7 @@ thead th {
     grid-template-rows: auto minmax(320px, 58vh) minmax(240px, 45vh);
   }
 
-  .roadmap-board {
-    grid-template-columns: 1fr;
+  .skilltree-scroll {
+    height: 72vh;
   }
 }

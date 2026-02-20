@@ -549,7 +549,7 @@ function ExperienceChartTable({
 }
 
 function RoadmapPage({ items }: { items: RoadmapItem[] }) {
-  const statusOrder: RoadmapStatus[] = ['Not Started', 'Studying', 'Done']
+  const treeScrollRef = useRef<HTMLDivElement>(null)
   const grouped = useMemo(() => {
     const map = new Map<string, RoadmapItem[]>()
     items.forEach((item) => {
@@ -559,97 +559,72 @@ function RoadmapPage({ items }: { items: RoadmapItem[] }) {
     })
     return Array.from(map.entries()).map(([area, tasks]) => ({
       area,
-      tasks,
-      progress: Math.round(tasks.reduce((acc, task) => acc + task.progress, 0) / tasks.length),
+      tasks: tasks.slice().sort((a, b) => b.progress - a.progress),
     }))
   }, [items])
+  const layout = useMemo(() => buildRoadmapSkillTreeLayout(grouped), [grouped])
 
-  const globalProgress = Math.round(items.reduce((acc, item) => acc + item.progress, 0) / Math.max(items.length, 1))
-
-  const board = useMemo(() => {
-    const map = new Map<RoadmapStatus, RoadmapItem[]>()
-    statusOrder.forEach((status) => map.set(status, []))
-    items.forEach((item) => map.get(item.status)?.push(item))
-    return map
-  }, [items])
-
-  const layout = useMemo(() => buildRoadmapMindmapLayout(grouped), [grouped])
+  useEffect(() => {
+    const node = treeScrollRef.current
+    if (!node) return
+    requestAnimationFrame(() => {
+      node.scrollTop = node.scrollHeight
+    })
+  }, [])
 
   return (
-    <section className="roadmap-layout">
-      <article className="doc-card roadmap-summary">
-        <div className="roadmap-summary-head">
-          <h3>Roadmap Dashboard</h3>
-          <span>{globalProgress}% overall</span>
+    <section className="skilltree-layout">
+      <article className="doc-card skilltree-card">
+        <div className="skilltree-head">
+          <h3>DevOps & SRE Skill Tree</h3>
+          <p>Start at the root below, then scroll up to explore branches and leaf skills.</p>
         </div>
-        <div className="roadmap-summary-grid">
-          {grouped.map((group) => (
-            <div key={group.area} className="roadmap-kpi">
-              <h4>{group.area}</h4>
-              <div className="roadmap-progress-track">
-                <div className="roadmap-progress-fill" style={{ width: `${group.progress}%` }} />
-              </div>
-              <p>{group.progress}% complete</p>
-            </div>
-          ))}
-        </div>
-      </article>
 
-      <article className="doc-card roadmap-board">
-        {statusOrder.map((status) => (
-          <section key={status}>
-            <h4>{status}</h4>
-            <div className="roadmap-board-list">
-              {(board.get(status) ?? []).map((item) => (
-                <a key={item.id} href={item.link} target="_blank" rel="noreferrer" className="roadmap-board-card">
-                  <strong>{item.topic}</strong>
-                  <span>{item.area}</span>
-                  <em>{item.progress}%</em>
-                </a>
-              ))}
-            </div>
-          </section>
-        ))}
-      </article>
+        <div className="skilltree-scroll" ref={treeScrollRef}>
+          <svg className="skilltree-svg" viewBox={`0 0 ${layout.width} ${layout.height}`} role="img" aria-label="DevOps and SRE skill tree">
+            <defs>
+              <linearGradient id="trunkGlow" x1="0%" y1="100%" x2="0%" y2="0%">
+                <stop offset="0%" stopColor="#c11a2b" />
+                <stop offset="60%" stopColor="#5d2228" />
+                <stop offset="100%" stopColor="#1f1f24" />
+              </linearGradient>
+              <radialGradient id="rootAura" cx="50%" cy="50%" r="50%">
+                <stop offset="0%" stopColor="rgba(228, 48, 61, 0.65)" />
+                <stop offset="100%" stopColor="rgba(228, 48, 61, 0)" />
+              </radialGradient>
+            </defs>
 
-      <article className="doc-card roadmap-mindmap-card">
-        <div className="roadmap-summary-head">
-          <h3>Mindmap Demo</h3>
-          <span>Open-source data source: `src/content/roadmap.json`</span>
-        </div>
-        <div className="roadmap-mindmap-wrap">
-          <svg className="roadmap-mindmap-svg" viewBox={`0 0 ${layout.width} ${layout.height}`} role="img" aria-label="DevOps and SRE roadmap mindmap">
-            <rect x="0" y="0" width={layout.width} height={layout.height} fill="transparent" />
+            <rect x="0" y="0" width={layout.width} height={layout.height} className="skilltree-bg" />
+            <ellipse cx={layout.root.x} cy={layout.root.y} rx="220" ry="110" fill="url(#rootAura)" />
+
             {layout.areas.map((area) => (
               <path
-                key={`root-${area.area}`}
-                d={`M ${layout.root.x} ${layout.root.y} C ${layout.root.x - 80} ${layout.root.y}, ${area.x + 80} ${area.y}, ${area.x} ${area.y}`}
-                stroke={area.color}
-                strokeWidth="2"
-                fill="none"
-                opacity="0.8"
-              />
-            ))}
-            {layout.topics.map((topic) => (
-              <path
-                key={`area-${topic.id}`}
-                d={`M ${topic.areaX} ${topic.areaY} C ${topic.areaX - 70} ${topic.areaY}, ${topic.x + 70} ${topic.y}, ${topic.x} ${topic.y}`}
-                stroke={topic.color}
-                strokeWidth="1.6"
-                fill="none"
-                opacity="0.7"
+                key={`trunk-${area.area}`}
+                d={`M ${layout.root.x} ${layout.root.y} C ${layout.root.x + area.side * 28} ${layout.root.y - 170}, ${area.x - area.side * 34} ${area.y + 110}, ${area.x} ${area.y}`}
+                className="skilltree-branch-main"
+                style={{ stroke: area.color }}
               />
             ))}
 
-            <ellipse cx={layout.root.x} cy={layout.root.y} rx="118" ry="28" className="roadmap-root-node" />
-            <text x={layout.root.x} y={layout.root.y + 6} textAnchor="middle" className="roadmap-root-label">
-              DevOps & SRE Roadmap
+            {layout.topics.map((topic) => (
+              <path
+                key={`twig-${topic.id}`}
+                d={`M ${topic.areaX} ${topic.areaY} C ${topic.areaX + topic.side * 45} ${topic.areaY - 78}, ${topic.x - topic.side * 48} ${topic.y + 72}, ${topic.x} ${topic.y}`}
+                className="skilltree-branch-sub"
+                style={{ stroke: topic.color }}
+              />
+            ))}
+
+            <path d={`M ${layout.root.x} ${layout.root.y + 45} L ${layout.root.x} ${layout.root.y - 220}`} className="skilltree-trunk" />
+            <circle cx={layout.root.x} cy={layout.root.y} r="24" className="skilltree-root-core" />
+            <text x={layout.root.x} y={layout.root.y + 58} textAnchor="middle" className="skilltree-root-label">
+              Root: DevOps & SRE Journey
             </text>
 
             {layout.areas.map((area) => (
               <g key={area.area} transform={`translate(${area.x}, ${area.y})`}>
-                <rect x="-82" y="-14" width="164" height="28" rx="14" className="roadmap-area-node" />
-                <text textAnchor="middle" y="5" className="roadmap-area-label">
+                <rect x="-92" y="-16" width="184" height="32" rx="16" className="skilltree-area-node" />
+                <text textAnchor="middle" y="5" className="skilltree-area-label">
                   {area.area}
                 </text>
               </g>
@@ -657,10 +632,14 @@ function RoadmapPage({ items }: { items: RoadmapItem[] }) {
 
             {layout.topics.map((topic) => (
               <a key={topic.id} href={topic.link} target="_blank" rel="noreferrer">
-                <g transform={`translate(${topic.x}, ${topic.y})`} className="roadmap-topic-group">
-                  <rect x="-165" y="-13" width="330" height="26" rx="8" className="roadmap-topic-node" />
-                  <text textAnchor="middle" y="4" className="roadmap-topic-label">
+                <g transform={`translate(${topic.x}, ${topic.y})`} className="skilltree-topic-group">
+                  <circle r={topic.radius} className="skilltree-topic-orb" style={{ stroke: topic.statusColor }} />
+                  <circle r={Math.max(topic.radius - 6, 7)} className="skilltree-topic-core" style={{ fill: topic.statusColor }} />
+                  <text x={topic.labelOffsetX} y="-3" textAnchor={topic.textAnchor} className="skilltree-topic-label">
                     {topic.topic}
+                  </text>
+                  <text x={topic.labelOffsetX} y="14" textAnchor={topic.textAnchor} className="skilltree-topic-meta">
+                    {topic.status} · {topic.progress}%
                   </text>
                 </g>
               </a>
@@ -757,61 +736,79 @@ function addDays(date: Date, days: number) {
 
 function pageTitleFromSlug(slug: string) {
   if (slug === 'sre-mini-project') return 'SRE-mini-project'
-  if (slug === 'roadmap-mindmap') return 'Roadmap'
+  if (slug === 'roadmap-mindmap') return 'Skill Tree'
   return 'Profile'
 }
 
-function buildRoadmapMindmapLayout(groups: Array<{ area: string; tasks: RoadmapItem[] }>) {
-  const colorByArea: Record<string, string> = {
-    'DevOps & SRE': '#d38cff',
-    Python: '#68a8ff',
-    Mathematics: '#7ecf9f',
-    'CNCF / Kubernetes': '#87d1db',
-    IaC: '#f6b572',
+function buildRoadmapSkillTreeLayout(groups: Array<{ area: string; tasks: RoadmapItem[] }>) {
+  const areaPalette = ['#b14b59', '#8a4e86', '#5f8ab6', '#5f9b7c', '#9f6f47', '#9a5f9f']
+  const statusColor: Record<RoadmapStatus, string> = {
+    Done: '#7be193',
+    Studying: '#f8af4b',
+    'Not Started': '#8892a8',
   }
 
-  const gapPerTopic = 42
-  const minAreaHeight = 88
-  const topMargin = 64
-  const leftTopicX = 380
-  const areaX = 760
-  const rootX = 1040
+  const width = 1700
+  const height = 2200
+  const rootX = width / 2
+  const rootY = height - 130
+  const areaYBase = rootY - 330
+  const slots = [-1, 1, -2, 2, -3, 3, -4, 4]
 
-  const areas: Array<{ area: string; x: number; y: number; color: string }> = []
+  const areas: Array<{ area: string; x: number; y: number; color: string; side: -1 | 1 }> = []
   const topics: Array<{
     id: string
     topic: string
+    status: RoadmapStatus
+    progress: number
     link: string
     x: number
     y: number
     areaX: number
     areaY: number
+    side: -1 | 1
     color: string
+    statusColor: string
+    radius: number
+    labelOffsetX: number
+    textAnchor: 'start' | 'end'
   }> = []
 
-  let yCursor = topMargin
-  groups.forEach((group) => {
-    const blockHeight = Math.max(minAreaHeight, group.tasks.length * gapPerTopic)
-    const areaY = yCursor + blockHeight / 2
-    const color = colorByArea[group.area] ?? '#9ab4ff'
-    areas.push({ area: group.area, x: areaX, y: areaY, color })
+  groups.forEach((group, idx) => {
+    const slot = slots[idx] ?? (idx % 2 === 0 ? -Math.ceil((idx + 1) / 2) : Math.ceil((idx + 1) / 2))
+    const side: -1 | 1 = slot < 0 ? -1 : 1
+    const depth = Math.abs(slot)
+    const x = rootX + side * (200 + (depth - 1) * 190)
+    const y = areaYBase - (depth % 2) * 75
+    const color = areaPalette[idx % areaPalette.length]
+    areas.push({ area: group.area, x, y, color, side })
 
-    group.tasks.forEach((task, index) => {
-      const y = yCursor + 20 + index * gapPerTopic
-      topics.push({ id: task.id, topic: task.topic, link: task.link, x: leftTopicX, y, areaX, areaY, color })
+    group.tasks.forEach((task, taskIdx) => {
+      const yStep = 170
+      const yStart = 460 + depth * 25 + (idx % 2) * 35
+      const topicY = yStart + taskIdx * yStep
+      const topicX = x + side * (130 + (taskIdx % 2) * 64)
+      topics.push({
+        id: task.id,
+        topic: task.topic,
+        status: task.status,
+        progress: task.progress,
+        link: task.link,
+        x: topicX,
+        y: Math.min(topicY, y - 110),
+        areaX: x,
+        areaY: y,
+        side,
+        color,
+        statusColor: statusColor[task.status],
+        radius: 12 + Math.round(task.progress / 20),
+        labelOffsetX: side > 0 ? 28 : -28,
+        textAnchor: side > 0 ? 'start' : 'end',
+      })
     })
-
-    yCursor += blockHeight + 16
   })
 
-  const height = Math.max(460, yCursor + 26)
-  return {
-    width: 1180,
-    height,
-    root: { x: rootX, y: height / 2 },
-    areas,
-    topics,
-  }
+  return { width, height, root: { x: rootX, y: rootY }, areas, topics }
 }
 
 function GitHubIcon() {
