@@ -5,6 +5,7 @@ import remarkGfm from 'remark-gfm'
 import navData from './content/nav.json'
 import profileData from './content/profile.json'
 import timelineData from './content/timeline.json'
+import roadmapData from './content/roadmap.json'
 
 type NavFolder = { title: string; type: 'folder'; slug?: string; children: NavNode[] }
 type NavPage = { title: string; type: 'page'; slug: string }
@@ -26,9 +27,20 @@ type TimelineItem = {
 
 type ThemeMode = 'dark' | 'light'
 type TimelineMode = 'multi-year' | 'today' | 'fit'
+type RoadmapStatus = 'Not Started' | 'Studying' | 'Done'
+type RoadmapItem = {
+  id: string
+  area: string
+  topic: string
+  status: RoadmapStatus
+  progress: number
+  priority: 'Low' | 'Medium' | 'High'
+  link: string
+}
 
 const navTree = navData as NavNode[]
 const experiences = timelineData as TimelineItem[]
+const roadmapItems = roadmapData as RoadmapItem[]
 
 function App() {
   return (
@@ -48,6 +60,7 @@ function Workspace() {
     if (slug === 'experience-timeline') return 'Profile/Timeline'
     if (slug === 'experience-chart') return 'Profile/Timetable'
     if (slug === 'sre-mini-project') return 'Projects/SRE-mini-project'
+    if (slug === 'roadmap-mindmap') return 'Roadmap/Mindmap Demo'
     return 'Profile'
   })
   const [theme, setTheme] = useState<ThemeMode>(() => {
@@ -98,7 +111,7 @@ function Workspace() {
       <main className="doc-view">
         <header className="doc-header">
           <div>
-            <h1>{normalizedSlug === 'sre-mini-project' ? 'SRE-mini-project' : 'Profile'}</h1>
+            <h1>{pageTitleFromSlug(normalizedSlug)}</h1>
             <p>{profileData.name}</p>
           </div>
           <button className="theme-toggle" type="button" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
@@ -106,7 +119,9 @@ function Workspace() {
           </button>
         </header>
 
-        {normalizedSlug === 'profile' ? <ProfilePage /> : <SreMiniProjectPage />}
+        {normalizedSlug === 'profile' && <ProfilePage />}
+        {normalizedSlug === 'sre-mini-project' && <SreMiniProjectPage />}
+        {normalizedSlug === 'roadmap-mindmap' && <RoadmapPage items={roadmapItems} />}
       </main>
     </div>
   )
@@ -121,7 +136,7 @@ function SidebarTree({
   activeMenuId: string
   onMenuAction: (node: NavPage | NavAnchor, menuId: string) => void
 }) {
-  const [openFolders, setOpenFolders] = useState<Record<string, boolean>>({ Profile: true, Projects: true })
+  const [openFolders, setOpenFolders] = useState<Record<string, boolean>>({ Profile: true, Projects: true, Roadmap: true })
   const toggleFolder = (path: string) => setOpenFolders((prev) => ({ ...prev, [path]: !prev[path] }))
 
   const renderNode = (node: NavNode, path: string) => {
@@ -533,6 +548,130 @@ function ExperienceChartTable({
   )
 }
 
+function RoadmapPage({ items }: { items: RoadmapItem[] }) {
+  const statusOrder: RoadmapStatus[] = ['Not Started', 'Studying', 'Done']
+  const grouped = useMemo(() => {
+    const map = new Map<string, RoadmapItem[]>()
+    items.forEach((item) => {
+      const bucket = map.get(item.area) ?? []
+      bucket.push(item)
+      map.set(item.area, bucket)
+    })
+    return Array.from(map.entries()).map(([area, tasks]) => ({
+      area,
+      tasks,
+      progress: Math.round(tasks.reduce((acc, task) => acc + task.progress, 0) / tasks.length),
+    }))
+  }, [items])
+
+  const globalProgress = Math.round(items.reduce((acc, item) => acc + item.progress, 0) / Math.max(items.length, 1))
+
+  const board = useMemo(() => {
+    const map = new Map<RoadmapStatus, RoadmapItem[]>()
+    statusOrder.forEach((status) => map.set(status, []))
+    items.forEach((item) => map.get(item.status)?.push(item))
+    return map
+  }, [items])
+
+  const layout = useMemo(() => buildRoadmapMindmapLayout(grouped), [grouped])
+
+  return (
+    <section className="roadmap-layout">
+      <article className="doc-card roadmap-summary">
+        <div className="roadmap-summary-head">
+          <h3>Roadmap Dashboard</h3>
+          <span>{globalProgress}% overall</span>
+        </div>
+        <div className="roadmap-summary-grid">
+          {grouped.map((group) => (
+            <div key={group.area} className="roadmap-kpi">
+              <h4>{group.area}</h4>
+              <div className="roadmap-progress-track">
+                <div className="roadmap-progress-fill" style={{ width: `${group.progress}%` }} />
+              </div>
+              <p>{group.progress}% complete</p>
+            </div>
+          ))}
+        </div>
+      </article>
+
+      <article className="doc-card roadmap-board">
+        {statusOrder.map((status) => (
+          <section key={status}>
+            <h4>{status}</h4>
+            <div className="roadmap-board-list">
+              {(board.get(status) ?? []).map((item) => (
+                <a key={item.id} href={item.link} target="_blank" rel="noreferrer" className="roadmap-board-card">
+                  <strong>{item.topic}</strong>
+                  <span>{item.area}</span>
+                  <em>{item.progress}%</em>
+                </a>
+              ))}
+            </div>
+          </section>
+        ))}
+      </article>
+
+      <article className="doc-card roadmap-mindmap-card">
+        <div className="roadmap-summary-head">
+          <h3>Mindmap Demo</h3>
+          <span>Open-source data source: `src/content/roadmap.json`</span>
+        </div>
+        <div className="roadmap-mindmap-wrap">
+          <svg className="roadmap-mindmap-svg" viewBox={`0 0 ${layout.width} ${layout.height}`} role="img" aria-label="DevOps and SRE roadmap mindmap">
+            <rect x="0" y="0" width={layout.width} height={layout.height} fill="transparent" />
+            {layout.areas.map((area) => (
+              <path
+                key={`root-${area.area}`}
+                d={`M ${layout.root.x} ${layout.root.y} C ${layout.root.x - 80} ${layout.root.y}, ${area.x + 80} ${area.y}, ${area.x} ${area.y}`}
+                stroke={area.color}
+                strokeWidth="2"
+                fill="none"
+                opacity="0.8"
+              />
+            ))}
+            {layout.topics.map((topic) => (
+              <path
+                key={`area-${topic.id}`}
+                d={`M ${topic.areaX} ${topic.areaY} C ${topic.areaX - 70} ${topic.areaY}, ${topic.x + 70} ${topic.y}, ${topic.x} ${topic.y}`}
+                stroke={topic.color}
+                strokeWidth="1.6"
+                fill="none"
+                opacity="0.7"
+              />
+            ))}
+
+            <ellipse cx={layout.root.x} cy={layout.root.y} rx="118" ry="28" className="roadmap-root-node" />
+            <text x={layout.root.x} y={layout.root.y + 6} textAnchor="middle" className="roadmap-root-label">
+              DevOps & SRE Roadmap
+            </text>
+
+            {layout.areas.map((area) => (
+              <g key={area.area} transform={`translate(${area.x}, ${area.y})`}>
+                <rect x="-82" y="-14" width="164" height="28" rx="14" className="roadmap-area-node" />
+                <text textAnchor="middle" y="5" className="roadmap-area-label">
+                  {area.area}
+                </text>
+              </g>
+            ))}
+
+            {layout.topics.map((topic) => (
+              <a key={topic.id} href={topic.link} target="_blank" rel="noreferrer">
+                <g transform={`translate(${topic.x}, ${topic.y})`} className="roadmap-topic-group">
+                  <rect x="-165" y="-13" width="330" height="26" rx="8" className="roadmap-topic-node" />
+                  <text textAnchor="middle" y="4" className="roadmap-topic-label">
+                    {topic.topic}
+                  </text>
+                </g>
+              </a>
+            ))}
+          </svg>
+        </div>
+      </article>
+    </section>
+  )
+}
+
 function SreMiniProjectPage() {
   const [markdown, setMarkdown] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -616,6 +755,65 @@ function addDays(date: Date, days: number) {
   return next
 }
 
+function pageTitleFromSlug(slug: string) {
+  if (slug === 'sre-mini-project') return 'SRE-mini-project'
+  if (slug === 'roadmap-mindmap') return 'Roadmap'
+  return 'Profile'
+}
+
+function buildRoadmapMindmapLayout(groups: Array<{ area: string; tasks: RoadmapItem[] }>) {
+  const colorByArea: Record<string, string> = {
+    'DevOps & SRE': '#d38cff',
+    Python: '#68a8ff',
+    Mathematics: '#7ecf9f',
+    'CNCF / Kubernetes': '#87d1db',
+    IaC: '#f6b572',
+  }
+
+  const gapPerTopic = 42
+  const minAreaHeight = 88
+  const topMargin = 64
+  const leftTopicX = 380
+  const areaX = 760
+  const rootX = 1040
+
+  const areas: Array<{ area: string; x: number; y: number; color: string }> = []
+  const topics: Array<{
+    id: string
+    topic: string
+    link: string
+    x: number
+    y: number
+    areaX: number
+    areaY: number
+    color: string
+  }> = []
+
+  let yCursor = topMargin
+  groups.forEach((group) => {
+    const blockHeight = Math.max(minAreaHeight, group.tasks.length * gapPerTopic)
+    const areaY = yCursor + blockHeight / 2
+    const color = colorByArea[group.area] ?? '#9ab4ff'
+    areas.push({ area: group.area, x: areaX, y: areaY, color })
+
+    group.tasks.forEach((task, index) => {
+      const y = yCursor + 20 + index * gapPerTopic
+      topics.push({ id: task.id, topic: task.topic, link: task.link, x: leftTopicX, y, areaX, areaY, color })
+    })
+
+    yCursor += blockHeight + 16
+  })
+
+  const height = Math.max(460, yCursor + 26)
+  return {
+    width: 1180,
+    height,
+    root: { x: rootX, y: height / 2 },
+    areas,
+    topics,
+  }
+}
+
 function GitHubIcon() {
   return (
     <svg aria-hidden="true" className="social-icon" viewBox="0 0 24 24" fill="currentColor">
@@ -646,7 +844,7 @@ function LinkedInIcon() {
 
 function normalizeSlug(slug: string) {
   if (slug === 'experience-timeline' || slug === 'experience-chart') return 'profile'
-  if (slug === 'sre-mini-project' || slug === 'profile') return slug
+  if (slug === 'sre-mini-project' || slug === 'roadmap-mindmap' || slug === 'profile') return slug
   return 'profile'
 }
 

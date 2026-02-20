@@ -1,0 +1,101 @@
+[
+  {
+    "id": "lfs162",
+    "area": "DevOps & SRE",
+    "topic": "Introduction to DevOps and Site Reliability Engineering (LFS162)",
+    "status": "Done",
+    "progress": 100,
+    "priority": "High",
+    "link": "https://training.linuxfoundation.org/training/introduction-to-devops-and-site-reliability-engineering-lfs162/"
+  },
+  {
+    "id": "sli-slo-basics",
+    "area": "DevOps & SRE",
+    "topic": "SLI / SLO / Error Budget Fundamentals",
+    "status": "Studying",
+    "progress": 65,
+    "priority": "High",
+    "link": "https://sre.google/workbook/table-of-contents/"
+  },
+  {
+    "id": "incident-playbook",
+    "area": "DevOps & SRE",
+    "topic": "Incident Response Playbook Design",
+    "status": "Studying",
+    "progress": 45,
+    "priority": "Medium",
+    "link": "https://sre.google/sre-book/handling-overload/"
+  },
+  {
+    "id": "python-essentials",
+    "area": "Python",
+    "topic": "Python Essentials 1",
+    "status": "Done",
+    "progress": 100,
+    "priority": "High",
+    "link": "https://pythoninstitute.org/"
+  },
+  {
+    "id": "pcap",
+    "area": "Python",
+    "topic": "PCAP Preparation",
+    "status": "Studying",
+    "progress": 58,
+    "priority": "High",
+    "link": "https://pythoninstitute.org/pcap"
+  },
+  {
+    "id": "math-modular",
+    "area": "Mathematics",
+    "topic": "Modular Arithmetic",
+    "status": "Studying",
+    "progress": 60,
+    "priority": "Medium",
+    "link": "https://en.wikipedia.org/wiki/Modular_arithmetic"
+  },
+  {
+    "id": "math-division",
+    "area": "Mathematics",
+    "topic": "Division Algorithm",
+    "status": "Not Started",
+    "progress": 0,
+    "priority": "Low",
+    "link": "https://en.wikipedia.org/wiki/Euclidean_division"
+  },
+  {
+    "id": "k8s-cka",
+    "area": "CNCF / Kubernetes",
+    "topic": "CKA Domain: Cluster Architecture",
+    "status": "Studying",
+    "progress": 52,
+    "priority": "High",
+    "link": "https://www.cncf.io/certification/cka/"
+  },
+  {
+    "id": "k8s-observability",
+    "area": "CNCF / Kubernetes",
+    "topic": "Prometheus and Grafana Deep Dive",
+    "status": "Studying",
+    "progress": 40,
+    "priority": "Medium",
+    "link": "https://prometheus.io/docs/introduction/overview/"
+  },
+  {
+    "id": "terraform-modules",
+    "area": "IaC",
+    "topic": "Reusable Terraform Modules",
+    "status": "Studying",
+    "progress": 55,
+    "priority": "High",
+    "link": "https://developer.hashicorp.com/terraform/language/modules"
+  },
+  {
+    "id": "gitops-argo",
+    "area": "IaC",
+    "topic": "GitOps with Argo CD",
+    "status": "Not Started",
+    "progress": 0,
+    "priority": "Medium",
+    "link": "https://argo-cd.readthedocs.io/en/stable/"
+  }
+]

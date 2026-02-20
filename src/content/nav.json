@@ -14,5 +14,12 @@
     "children": [
       { "title": "SRE-mini-project", "type": "page", "slug": "sre-mini-project" }
     ]
+  },
+  {
+    "title": "Roadmap",
+    "type": "folder",
+    "children": [
+      { "title": "Mindmap Demo", "type": "page", "slug": "roadmap-mindmap" }
+    ]
   }
 ]
