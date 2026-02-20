@@ -664,6 +664,12 @@ thead th {
   cursor: pointer;
 }
 
+.skilltree-leaf-link {
+  stroke: rgba(167, 178, 208, 0.42);
+  stroke-width: 1.6;
+  fill: none;
+}
+
 .skilltree-topic-orb {
   fill: rgba(20, 22, 30, 0.92);
   stroke-width: 1.6;
@@ -673,19 +679,34 @@ thead th {
   opacity: 0.95;
 }
 
-.skilltree-topic-label {
+.skilltree-leaf-box {
+  fill: rgba(16, 20, 31, 0.9);
+  stroke: rgba(134, 154, 194, 0.38);
+  stroke-width: 1;
+}
+
+.skilltree-leaf-box.root-zone {
+  fill: rgba(33, 23, 29, 0.92);
+  stroke: rgba(198, 110, 126, 0.45);
+}
+
+.skilltree-leaf-title {
   fill: #ececf2;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
 }
 
-.skilltree-topic-meta {
+.skilltree-leaf-meta {
   fill: #9aa3b2;
   font-size: 11px;
 }
 
 .skilltree-topic-group:hover .skilltree-topic-orb {
   stroke: #c8d4ff;
+}
+
+.skilltree-topic-group:hover .skilltree-leaf-box {
+  stroke: rgba(195, 210, 245, 0.66);
 }
 
 @media (max-width: 960px) {

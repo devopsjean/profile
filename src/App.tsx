@@ -38,6 +38,32 @@ type RoadmapItem = {
   link: string
 }
 
+type SkillLeafLayout = {
+  id: string
+  topic: string
+  displayTopic: string
+  status: RoadmapStatus
+  progress: number
+  link: string
+  x: number
+  y: number
+  areaX: number
+  areaY: number
+  side: -1 | 1
+  color: string
+  statusColor: string
+  radius: number
+  zone: 'upper' | 'root'
+  boxWidth: number
+  boxHeight: number
+  baseBoxY: number
+  boxX: number
+  boxY: number
+  boxCenterY: number
+  boxAnchorX: number
+  textX: number
+}
+
 const navTree = navData as NavNode[]
 const experiences = timelineData as TimelineItem[]
 const roadmapItems = roadmapData as RoadmapItem[]
@@ -659,13 +685,15 @@ function RoadmapPage({ items }: { items: RoadmapItem[] }) {
 
             {layout.topics.map((topic) => (
               <a key={topic.id} href={topic.link} target="_blank" rel="noreferrer">
-                <g transform={`translate(${topic.x}, ${topic.y})`} className="skilltree-topic-group">
-                  <circle r={topic.radius} className="skilltree-topic-orb" style={{ stroke: topic.statusColor }} />
-                  <circle r={Math.max(topic.radius - 6, 7)} className="skilltree-topic-core" style={{ fill: topic.statusColor }} />
-                  <text x={topic.labelOffsetX} y="-3" textAnchor={topic.textAnchor} className="skilltree-topic-label">
-                    {topic.topic}
+                <g className="skilltree-topic-group">
+                  <path d={`M ${topic.x} ${topic.y} L ${topic.boxAnchorX} ${topic.boxCenterY}`} className="skilltree-leaf-link" />
+                  <circle cx={topic.x} cy={topic.y} r={topic.radius} className="skilltree-topic-orb" style={{ stroke: topic.statusColor }} />
+                  <circle cx={topic.x} cy={topic.y} r={Math.max(topic.radius - 6, 7)} className="skilltree-topic-core" style={{ fill: topic.statusColor }} />
+                  <rect x={topic.boxX} y={topic.boxY} width={topic.boxWidth} height={topic.boxHeight} rx="10" className="skilltree-leaf-box" />
+                  <text x={topic.textX} y={topic.boxY + 17} className="skilltree-leaf-title">
+                    {topic.displayTopic}
                   </text>
-                  <text x={topic.labelOffsetX} y="14" textAnchor={topic.textAnchor} className="skilltree-topic-meta">
+                  <text x={topic.textX} y={topic.boxY + 33} className="skilltree-leaf-meta">
                     {topic.status} · {topic.progress}%
                   </text>
                 </g>
@@ -674,13 +702,15 @@ function RoadmapPage({ items }: { items: RoadmapItem[] }) {
 
             {layout.rootTopics.map((topic) => (
               <a key={`root-${topic.id}`} href={topic.link} target="_blank" rel="noreferrer">
-                <g transform={`translate(${topic.x}, ${topic.y})`} className="skilltree-topic-group">
-                  <circle r={topic.radius} className="skilltree-topic-orb" style={{ stroke: topic.statusColor }} />
-                  <circle r={Math.max(topic.radius - 6, 7)} className="skilltree-topic-core" style={{ fill: topic.statusColor }} />
-                  <text x={topic.labelOffsetX} y="-3" textAnchor={topic.textAnchor} className="skilltree-topic-label">
-                    {topic.topic}
+                <g className="skilltree-topic-group">
+                  <path d={`M ${topic.x} ${topic.y} L ${topic.boxAnchorX} ${topic.boxCenterY}`} className="skilltree-leaf-link" />
+                  <circle cx={topic.x} cy={topic.y} r={topic.radius} className="skilltree-topic-orb" style={{ stroke: topic.statusColor }} />
+                  <circle cx={topic.x} cy={topic.y} r={Math.max(topic.radius - 6, 7)} className="skilltree-topic-core" style={{ fill: topic.statusColor }} />
+                  <rect x={topic.boxX} y={topic.boxY} width={topic.boxWidth} height={topic.boxHeight} rx="10" className="skilltree-leaf-box root-zone" />
+                  <text x={topic.textX} y={topic.boxY + 17} className="skilltree-leaf-title">
+                    {topic.displayTopic}
                   </text>
-                  <text x={topic.labelOffsetX} y="14" textAnchor={topic.textAnchor} className="skilltree-topic-meta">
+                  <text x={topic.textX} y={topic.boxY + 33} className="skilltree-leaf-meta">
                     {topic.status} · {topic.progress}%
                   </text>
                 </g>
@@ -803,41 +833,8 @@ function buildRoadmapSkillTreeLayout(groups: Array<{ area: string; tasks: Roadma
 
   const areas: Array<{ area: string; x: number; y: number; color: string; side: -1 | 1 }> = []
   const rootAreas: Array<{ area: string; x: number; y: number; color: string; side: -1 | 1 }> = []
-  const topics: Array<{
-    id: string
-    topic: string
-    status: RoadmapStatus
-    progress: number
-    link: string
-    x: number
-    y: number
-    areaX: number
-    areaY: number
-    side: -1 | 1
-    color: string
-    statusColor: string
-    radius: number
-    labelOffsetX: number
-    textAnchor: 'start' | 'end'
-  }> = []
-
-  const rootTopics: Array<{
-    id: string
-    topic: string
-    status: RoadmapStatus
-    progress: number
-    link: string
-    x: number
-    y: number
-    areaX: number
-    areaY: number
-    side: -1 | 1
-    color: string
-    statusColor: string
-    radius: number
-    labelOffsetX: number
-    textAnchor: 'start' | 'end'
-  }> = []
+  const topics: SkillLeafLayout[] = []
+  const rootTopics: SkillLeafLayout[] = []
 
   upperGroups.forEach((group, idx) => {
     const slot = slots[idx] ?? (idx % 2 === 0 ? -Math.ceil((idx + 1) / 2) : Math.ceil((idx + 1) / 2))
@@ -853,9 +850,13 @@ function buildRoadmapSkillTreeLayout(groups: Array<{ area: string; tasks: Roadma
       const pairShift = taskIdx % 2 === 0 ? -1 : 1
       const topicY = y - 96 - tier * 84 - (taskIdx % 2) * 12
       const topicX = x + side * (135 + tier * 36) + pairShift * 44
+      const boxWidth = Math.max(250, Math.min(380, 98 + task.topic.length * 5.2))
+      const boxHeight = 40
+      const boxX = side > 0 ? topicX + 32 : topicX - 32 - boxWidth
       topics.push({
         id: task.id,
         topic: task.topic,
+        displayTopic: shortenSkillLabel(task.topic),
         status: task.status,
         progress: task.progress,
         link: task.link,
@@ -867,8 +868,15 @@ function buildRoadmapSkillTreeLayout(groups: Array<{ area: string; tasks: Roadma
         color,
         statusColor: statusColor[task.status],
         radius: 12 + Math.round(task.progress / 20),
-        labelOffsetX: side > 0 ? 28 : -28,
-        textAnchor: side > 0 ? 'start' : 'end',
+        zone: 'upper',
+        boxWidth,
+        boxHeight,
+        baseBoxY: topicY - boxHeight / 2,
+        boxX,
+        boxY: topicY - boxHeight / 2,
+        boxCenterY: topicY,
+        boxAnchorX: side > 0 ? boxX : boxX + boxWidth,
+        textX: boxX + 12,
       })
     })
   })
@@ -884,9 +892,13 @@ function buildRoadmapSkillTreeLayout(groups: Array<{ area: string; tasks: Roadma
     group.tasks.forEach((task, taskIdx) => {
       const topicY = y + 98 + taskIdx * 84
       const topicX = x + side * (124 + (taskIdx % 2) * 36)
+      const boxWidth = Math.max(250, Math.min(380, 98 + task.topic.length * 5.2))
+      const boxHeight = 40
+      const boxX = side > 0 ? topicX + 32 : topicX - 32 - boxWidth
       rootTopics.push({
         id: task.id,
         topic: task.topic,
+        displayTopic: shortenSkillLabel(task.topic),
         status: task.status,
         progress: task.progress,
         link: task.link,
@@ -898,13 +910,52 @@ function buildRoadmapSkillTreeLayout(groups: Array<{ area: string; tasks: Roadma
         color,
         statusColor: statusColor[task.status],
         radius: 12 + Math.round(task.progress / 20),
-        labelOffsetX: side > 0 ? 28 : -28,
-        textAnchor: side > 0 ? 'start' : 'end',
+        zone: 'root',
+        boxWidth,
+        boxHeight,
+        baseBoxY: topicY - boxHeight / 2,
+        boxX,
+        boxY: topicY - boxHeight / 2,
+        boxCenterY: topicY,
+        boxAnchorX: side > 0 ? boxX : boxX + boxWidth,
+        textX: boxX + 12,
       })
     })
   })
 
+  resolveLeafOverlap(topics)
+  resolveLeafOverlap(rootTopics)
+
   return { width, height, root: { x: rootX, y: rootY }, areas, topics, rootAreas, rootTopics }
+}
+
+function resolveLeafOverlap(nodes: SkillLeafLayout[]) {
+  const laneGap = 10
+  const lanes = new Map<string, SkillLeafLayout[]>()
+  nodes.forEach((node) => {
+    const key = `${node.zone}-${node.side}`
+    const lane = lanes.get(key) ?? []
+    lane.push(node)
+    lanes.set(key, lane)
+  })
+
+  lanes.forEach((lane) => {
+    lane.sort((a, b) => a.baseBoxY - b.baseBoxY)
+    let cursorBottom = -Infinity
+    lane.forEach((node) => {
+      const nextY = Math.max(node.baseBoxY, cursorBottom + laneGap)
+      node.boxY = nextY
+      node.boxCenterY = nextY + node.boxHeight / 2
+      node.boxAnchorX = node.side > 0 ? node.boxX : node.boxX + node.boxWidth
+      node.textX = node.boxX + 12
+      cursorBottom = nextY + node.boxHeight
+    })
+  })
+}
+
+function shortenSkillLabel(text: string, max = 46) {
+  if (text.length <= max) return text
+  return `${text.slice(0, max - 1)}…`
 }
 
 function GitHubIcon() {
