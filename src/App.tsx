@@ -68,9 +68,22 @@ type SkillLeafLayout = {
   maxY: number
 }
 
+type SkillAreaLayout = {
+  key: string
+  area: string
+  x: number
+  y: number
+  color: string
+  side: -1 | 1
+  bandTop: number
+  bandBottom: number
+}
+
 const navTree = navData as NavNode[]
 const experiences = timelineData as TimelineItem[]
 const roadmapItems = roadmapData as RoadmapItem[]
+const sidebarVersion = `${__APP_RELEASE_STAGE__} v${__APP_BUILD_VERSION__}`
+const sidebarBuild = `build ${__APP_BUILD_HASH__}`
 
 function App() {
   return (
@@ -134,8 +147,14 @@ function Workspace() {
   return (
     <div className={`app-shell theme-${theme}`}>
       <aside className="left-rail">
-        <div className="rail-title">Profile</div>
-        <SidebarTree tree={navTree} activeMenuId={activeMenuId} onMenuAction={handleMenuAction} />
+        <div className="rail-main">
+          <div className="rail-title">Profile</div>
+          <SidebarTree tree={navTree} activeMenuId={activeMenuId} onMenuAction={handleMenuAction} />
+        </div>
+        <div className="rail-version">
+          <p>{sidebarVersion}</p>
+          <p>{sidebarBuild}</p>
+        </div>
       </aside>
 
       <main className="doc-view">
@@ -833,27 +852,26 @@ function buildRoadmapSkillTreeLayout(groups: Array<{ area: string; tasks: Roadma
   const rootX = width / 2
   const rootY = height - 520
 
-  const areas: Array<{ key: string; area: string; x: number; y: number; color: string; side: -1 | 1; bandTop: number; bandBottom: number }> = []
-  const rootAreas: Array<{ key: string; area: string; x: number; y: number; color: string; side: -1 | 1; bandTop: number; bandBottom: number }> =
-    []
+  const areas: SkillAreaLayout[] = []
+  const rootAreas: SkillAreaLayout[] = []
   const topics: SkillLeafLayout[] = []
   const rootTopics: SkillLeafLayout[] = []
 
-  const upperAngles = buildCenteredAngles(-90, 92, upperGroups.length)
+  const upperAngles = buildCenteredAngles(-90, 62, upperGroups.length)
   const upperIntervalsBySide = new Map<-1 | 1, Array<{ start: number; end: number }>>()
   upperGroups.forEach((group, idx) => {
     const angle = upperAngles[idx]
-    const radius = 390 + Math.floor((idx + 1) / 2) * 55
+    const radius = 248 + Math.floor((idx + 1) / 2) * 32
     const base = polarPoint(rootX, rootY, radius, angle)
     let side: -1 | 1 = base.x <= rootX ? -1 : 1
     if (Math.abs(base.x - rootX) < 24) side = idx % 2 === 0 ? -1 : 1
 
-    const pairRows = Math.max(1, Math.ceil(group.tasks.length / 2))
-    const bandHeight = Math.max(112, pairRows * 58 + 14)
-    let bandBottom = base.y - 26
+    const rowStep = 56
+    const bandHeight = Math.max(110, group.tasks.length * rowStep + 32)
+    let bandBottom = base.y - 22
     let bandTop = bandBottom - bandHeight
     const sideIntervals = upperIntervalsBySide.get(side) ?? []
-    const shift = findBandShift(bandTop, bandBottom, sideIntervals, 128)
+    const shift = findBandShift(bandTop, bandBottom, sideIntervals, 92)
     bandTop += shift
     bandBottom += shift
     sideIntervals.push({ start: bandTop, end: bandBottom })
@@ -866,10 +884,10 @@ function buildRoadmapSkillTreeLayout(groups: Array<{ area: string; tasks: Roadma
     areas.push(area)
 
     group.tasks.forEach((task, taskIndex) => {
-      const row = Math.floor(taskIndex / 2)
       const lane = taskIndex % 2 === 0 ? -1 : 1
-      const pointY = bandTop + 24 + row * 58 + lane * 6
-      const pointX = base.x + side * (108 + row * 18) + lane * 14
+      const depth = Math.floor(taskIndex / 2)
+      const pointY = bandTop + 22 + taskIndex * rowStep
+      const pointX = base.x + side * (88 + depth * 12) + lane * 6
       const boxWidth = Math.max(238, Math.min(320, 108 + task.topic.length * 3.9))
       const boxHeight = 40
       const boxX = side > 0 ? pointX + 16 : pointX - 16 - boxWidth
@@ -905,21 +923,21 @@ function buildRoadmapSkillTreeLayout(groups: Array<{ area: string; tasks: Roadma
     })
   })
 
-  const lowerAngles = buildCenteredAngles(90, 64, lowerGroups.length)
+  const lowerAngles = buildCenteredAngles(90, 48, lowerGroups.length)
   const lowerIntervalsBySide = new Map<-1 | 1, Array<{ start: number; end: number }>>()
   lowerGroups.forEach((group, idx) => {
     const sideHint: -1 | 1 = group.area.toLowerCase().includes('python') ? 1 : -1
     const angle = lowerGroups.length === 2 ? (sideHint > 0 ? 70 : 110) : lowerAngles[idx]
-    const radius = 250 + Math.floor((idx + 1) / 2) * 45
+    const radius = 172 + Math.floor((idx + 1) / 2) * 30
     const base = polarPoint(rootX, rootY, radius, angle)
     const side: -1 | 1 = base.x <= rootX ? -1 : 1
 
-    const pairRows = Math.max(1, Math.ceil(group.tasks.length / 2))
-    const bandHeight = Math.max(112, pairRows * 58 + 14)
-    let bandTop = base.y + 26
+    const rowStep = 56
+    const bandHeight = Math.max(110, group.tasks.length * rowStep + 32)
+    let bandTop = base.y + 20
     let bandBottom = bandTop + bandHeight
     const sideIntervals = lowerIntervalsBySide.get(side) ?? []
-    const shift = findBandShift(bandTop, bandBottom, sideIntervals, 116)
+    const shift = findBandShift(bandTop, bandBottom, sideIntervals, 84)
     bandTop += shift
     bandBottom += shift
     sideIntervals.push({ start: bandTop, end: bandBottom })
@@ -932,10 +950,10 @@ function buildRoadmapSkillTreeLayout(groups: Array<{ area: string; tasks: Roadma
     rootAreas.push(area)
 
     group.tasks.forEach((task, taskIndex) => {
-      const row = Math.floor(taskIndex / 2)
       const lane = taskIndex % 2 === 0 ? -1 : 1
-      const pointY = bandTop + 24 + row * 58 + lane * 6
-      const pointX = base.x + side * (100 + row * 18) + lane * 14
+      const depth = Math.floor(taskIndex / 2)
+      const pointY = bandTop + 22 + taskIndex * rowStep
+      const pointX = base.x + side * (84 + depth * 12) + lane * 6
       const boxWidth = Math.max(238, Math.min(320, 108 + task.topic.length * 3.9))
       const boxHeight = 40
       const boxX = side > 0 ? pointX + 16 : pointX - 16 - boxWidth
@@ -971,10 +989,178 @@ function buildRoadmapSkillTreeLayout(groups: Array<{ area: string; tasks: Roadma
     })
   })
 
-  resolveLeafOverlap(topics, buildAreaLaneBlockers(areas), 66)
-  resolveLeafOverlap(rootTopics, buildAreaLaneBlockers(rootAreas), 66)
+  resolveLeafOverlap(topics, buildAreaLaneBlockers(areas), 240)
+  resolveLeafOverlap(rootTopics, buildAreaLaneBlockers(rootAreas), 240)
+  compactClustersTowardCore(areas, topics, { x: rootX, y: rootY }, {
+    width,
+    height,
+    zone: 'upper',
+    minRadius: 108,
+    zoneGap: 82,
+    rootKeepout: 92,
+    clusterGap: 6,
+    boundaryPadding: 10,
+  })
+  compactClustersTowardCore(rootAreas, rootTopics, { x: rootX, y: rootY }, {
+    width,
+    height,
+    zone: 'root',
+    minRadius: 74,
+    zoneGap: 58,
+    rootKeepout: 92,
+    clusterGap: 6,
+    boundaryPadding: 10,
+  })
+  resolveLeafOverlap(topics, buildAreaLaneBlockers(areas), 240)
+  resolveLeafOverlap(rootTopics, buildAreaLaneBlockers(rootAreas), 240)
 
   return { width, height, root: { x: rootX, y: rootY }, areas, topics, rootAreas, rootTopics }
+}
+
+function compactClustersTowardCore(
+  areas: SkillAreaLayout[],
+  leaves: SkillLeafLayout[],
+  root: { x: number; y: number },
+  options: {
+    width: number
+    height: number
+    zone: 'upper' | 'root'
+    minRadius: number
+    zoneGap: number
+    rootKeepout: number
+    clusterGap: number
+    boundaryPadding: number
+  },
+) {
+  if (!areas.length) return
+
+  const clusters = areas.map((area) => {
+    const laneLeaves = leaves.filter((leaf) => leaf.clusterId === area.key)
+    return {
+      area,
+      leaves: laneLeaves,
+      bounds: getClusterBounds(area, laneLeaves),
+    }
+  })
+
+  const step = 30
+  const maxIterations = 320
+  for (let iteration = 0; iteration < maxIterations; iteration += 1) {
+    let moved = false
+    const ordered = clusters
+      .slice()
+      .sort((a, b) => distanceToPoint(b.area.x, b.area.y, root.x, root.y) - distanceToPoint(a.area.x, a.area.y, root.x, root.y))
+
+    for (const cluster of ordered) {
+      const vectorX = root.x - cluster.area.x
+      const vectorY = root.y - cluster.area.y
+      const distance = Math.hypot(vectorX, vectorY)
+      if (distance <= options.minRadius + 1) continue
+
+      const moveLength = Math.min(step, distance - options.minRadius)
+      const dx = (vectorX / distance) * moveLength
+      const dy = (vectorY / distance) * moveLength
+      const nextAreaY = cluster.area.y + dy
+
+      if (options.zone === 'upper' && nextAreaY > root.y - options.zoneGap) continue
+      if (options.zone === 'root' && nextAreaY < root.y + options.zoneGap) continue
+
+      const nextBounds = shiftBounds(cluster.bounds, dx, dy)
+      if (
+        nextBounds.minX < options.boundaryPadding ||
+        nextBounds.maxX > options.width - options.boundaryPadding ||
+        nextBounds.minY < options.boundaryPadding ||
+        nextBounds.maxY > options.height - options.boundaryPadding
+      ) {
+        continue
+      }
+
+      if (isCircleIntersectingAabb(root.x, root.y, options.rootKeepout, nextBounds)) continue
+
+      let collides = false
+      for (const other of clusters) {
+        if (other === cluster) continue
+        if (boxesOverlap(nextBounds, other.bounds, options.clusterGap)) {
+          collides = true
+          break
+        }
+      }
+      if (collides) continue
+
+      cluster.area.x += dx
+      cluster.area.y += dy
+      cluster.area.bandTop += dy
+      cluster.area.bandBottom += dy
+      cluster.leaves.forEach((leaf) => {
+        leaf.x += dx
+        leaf.y += dy
+        leaf.areaX += dx
+        leaf.areaY += dy
+        leaf.baseBoxY += dy
+        leaf.boxX += dx
+        leaf.boxY += dy
+        leaf.boxCenterY += dy
+        leaf.boxAnchorX += dx
+        leaf.textX += dx
+        leaf.minY += dy
+        leaf.maxY += dy
+      })
+      cluster.bounds = nextBounds
+      moved = true
+    }
+
+    if (!moved) break
+  }
+}
+
+function getClusterBounds(area: SkillAreaLayout, leaves: SkillLeafLayout[]) {
+  let minX = area.x - 92
+  let maxX = area.x + 92
+  let minY = area.y - 16
+  let maxY = area.y + 16
+
+  leaves.forEach((leaf) => {
+    minX = Math.min(minX, leaf.boxX, leaf.boxAnchorX - leaf.radius - 2)
+    maxX = Math.max(maxX, leaf.boxX + leaf.boxWidth, leaf.boxAnchorX + leaf.radius + 2)
+    minY = Math.min(minY, leaf.boxY, leaf.boxCenterY - leaf.radius - 2)
+    maxY = Math.max(maxY, leaf.boxY + leaf.boxHeight, leaf.boxCenterY + leaf.radius + 2)
+  })
+
+  return { minX, maxX, minY, maxY }
+}
+
+function shiftBounds(bounds: { minX: number; maxX: number; minY: number; maxY: number }, dx: number, dy: number) {
+  return {
+    minX: bounds.minX + dx,
+    maxX: bounds.maxX + dx,
+    minY: bounds.minY + dy,
+    maxY: bounds.maxY + dy,
+  }
+}
+
+function boxesOverlap(
+  a: { minX: number; maxX: number; minY: number; maxY: number },
+  b: { minX: number; maxX: number; minY: number; maxY: number },
+  gap: number,
+) {
+  return !(a.maxX + gap < b.minX || a.minX > b.maxX + gap || a.maxY + gap < b.minY || a.minY > b.maxY + gap)
+}
+
+function isCircleIntersectingAabb(
+  cx: number,
+  cy: number,
+  radius: number,
+  box: { minX: number; maxX: number; minY: number; maxY: number },
+) {
+  const nearestX = clamp(cx, box.minX, box.maxX)
+  const nearestY = clamp(cy, box.minY, box.maxY)
+  const dx = cx - nearestX
+  const dy = cy - nearestY
+  return dx * dx + dy * dy <= radius * radius
+}
+
+function distanceToPoint(x1: number, y1: number, x2: number, y2: number) {
+  return Math.hypot(x2 - x1, y2 - y1)
 }
 
 function resolveLeafOverlap(
@@ -982,7 +1168,7 @@ function resolveLeafOverlap(
   blockers: Map<string, Array<{ start: number; end: number }>>,
   maxShift: number,
 ) {
-  const laneGap = 8
+  const laneGap = 12
   const lanes = new Map<string, SkillLeafLayout[]>()
   nodes.forEach((node) => {
     const key = node.clusterId

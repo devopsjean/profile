@@ -57,10 +57,18 @@ body {
 .left-rail {
   background: var(--rail);
   border-right: 1px solid var(--line);
-  padding: 14px 12px;
+  padding: 14px 12px 10px;
   height: 100vh;
   position: sticky;
   top: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.rail-main {
+  min-height: 0;
+  flex: 1 1 auto;
   overflow: auto;
 }
 
@@ -68,6 +76,20 @@ body {
   font-size: 18px;
   font-weight: 700;
   margin: 4px 8px 10px;
+}
+
+.rail-version {
+  border-top: 1px solid var(--line);
+  margin-top: 10px;
+  padding: 10px 8px 0;
+  color: var(--muted);
+}
+
+.rail-version p {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.45;
+  letter-spacing: 0.02em;
 }
 
 .tree-list {
@@ -709,6 +731,11 @@ thead th {
     height: auto;
     border-right: 0;
     border-bottom: 1px solid var(--line);
+    overflow: visible;
+  }
+
+  .rail-main {
+    overflow: visible;
   }
 
   .doc-view {
