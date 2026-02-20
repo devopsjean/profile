@@ -644,7 +644,7 @@ function RoadmapPage({ items }: { items: RoadmapItem[] }) {
             {layout.topics.map((topic) => (
               <path
                 key={`twig-${topic.id}`}
-                d={`M ${topic.areaX} ${topic.areaY} C ${topic.areaX + topic.side * 45} ${topic.areaY - 78}, ${topic.x - topic.side * 48} ${topic.y + 72}, ${topic.x} ${topic.y}`}
+                d={`M ${topic.areaX} ${topic.areaY} C ${topic.areaX + topic.side * 45} ${topic.areaY - 78}, ${topic.boxAnchorX - topic.side * 54} ${topic.boxCenterY + 48}, ${topic.boxAnchorX} ${topic.boxCenterY}`}
                 className="skilltree-branch-sub"
                 style={{ stroke: topic.color }}
               />
@@ -653,7 +653,7 @@ function RoadmapPage({ items }: { items: RoadmapItem[] }) {
             {layout.rootTopics.map((topic) => (
               <path
                 key={`root-twig-${topic.id}`}
-                d={`M ${topic.areaX} ${topic.areaY} C ${topic.areaX + topic.side * 42} ${topic.areaY + 62}, ${topic.x - topic.side * 44} ${topic.y - 54}, ${topic.x} ${topic.y}`}
+                d={`M ${topic.areaX} ${topic.areaY} C ${topic.areaX + topic.side * 42} ${topic.areaY + 62}, ${topic.boxAnchorX - topic.side * 50} ${topic.boxCenterY - 42}, ${topic.boxAnchorX} ${topic.boxCenterY}`}
                 className="skilltree-branch-sub root-zone"
                 style={{ stroke: topic.color }}
               />
@@ -686,9 +686,8 @@ function RoadmapPage({ items }: { items: RoadmapItem[] }) {
             {layout.topics.map((topic) => (
               <a key={topic.id} href={topic.link} target="_blank" rel="noreferrer">
                 <g className="skilltree-topic-group">
-                  <path d={`M ${topic.x} ${topic.y} L ${topic.boxAnchorX} ${topic.boxCenterY}`} className="skilltree-leaf-link" />
-                  <circle cx={topic.x} cy={topic.y} r={topic.radius} className="skilltree-topic-orb" style={{ stroke: topic.statusColor }} />
-                  <circle cx={topic.x} cy={topic.y} r={Math.max(topic.radius - 6, 7)} className="skilltree-topic-core" style={{ fill: topic.statusColor }} />
+                  <circle cx={topic.boxAnchorX} cy={topic.boxCenterY} r={topic.radius} className="skilltree-topic-orb" style={{ stroke: topic.statusColor }} />
+                  <circle cx={topic.boxAnchorX} cy={topic.boxCenterY} r={Math.max(topic.radius - 6, 7)} className="skilltree-topic-core" style={{ fill: topic.statusColor }} />
                   <rect x={topic.boxX} y={topic.boxY} width={topic.boxWidth} height={topic.boxHeight} rx="10" className="skilltree-leaf-box" />
                   <text x={topic.textX} y={topic.boxY + 17} className="skilltree-leaf-title">
                     {topic.displayTopic}
@@ -703,9 +702,8 @@ function RoadmapPage({ items }: { items: RoadmapItem[] }) {
             {layout.rootTopics.map((topic) => (
               <a key={`root-${topic.id}`} href={topic.link} target="_blank" rel="noreferrer">
                 <g className="skilltree-topic-group">
-                  <path d={`M ${topic.x} ${topic.y} L ${topic.boxAnchorX} ${topic.boxCenterY}`} className="skilltree-leaf-link" />
-                  <circle cx={topic.x} cy={topic.y} r={topic.radius} className="skilltree-topic-orb" style={{ stroke: topic.statusColor }} />
-                  <circle cx={topic.x} cy={topic.y} r={Math.max(topic.radius - 6, 7)} className="skilltree-topic-core" style={{ fill: topic.statusColor }} />
+                  <circle cx={topic.boxAnchorX} cy={topic.boxCenterY} r={topic.radius} className="skilltree-topic-orb" style={{ stroke: topic.statusColor }} />
+                  <circle cx={topic.boxAnchorX} cy={topic.boxCenterY} r={Math.max(topic.radius - 6, 7)} className="skilltree-topic-core" style={{ fill: topic.statusColor }} />
                   <rect x={topic.boxX} y={topic.boxY} width={topic.boxWidth} height={topic.boxHeight} rx="10" className="skilltree-leaf-box root-zone" />
                   <text x={topic.textX} y={topic.boxY + 17} className="skilltree-leaf-title">
                     {topic.displayTopic}
@@ -923,13 +921,16 @@ function buildRoadmapSkillTreeLayout(groups: Array<{ area: string; tasks: Roadma
     })
   })
 
-  resolveLeafOverlap(topics)
-  resolveLeafOverlap(rootTopics)
+  resolveLeafOverlap(topics, buildAreaLaneBlockers(areas, 'upper'))
+  resolveLeafOverlap(rootTopics, buildAreaLaneBlockers(rootAreas, 'root'))
 
   return { width, height, root: { x: rootX, y: rootY }, areas, topics, rootAreas, rootTopics }
 }
 
-function resolveLeafOverlap(nodes: SkillLeafLayout[]) {
+function resolveLeafOverlap(
+  nodes: SkillLeafLayout[],
+  blockers: Map<string, Array<{ start: number; end: number }>>,
+) {
   const laneGap = 10
   const lanes = new Map<string, SkillLeafLayout[]>()
   nodes.forEach((node) => {
@@ -940,17 +941,47 @@ function resolveLeafOverlap(nodes: SkillLeafLayout[]) {
   })
 
   lanes.forEach((lane) => {
+    const key = `${lane[0].zone}-${lane[0].side}`
+    const occupied = [...(blockers.get(key) ?? [])].sort((a, b) => a.start - b.start)
     lane.sort((a, b) => a.baseBoxY - b.baseBoxY)
-    let cursorBottom = -Infinity
+
     lane.forEach((node) => {
-      const nextY = Math.max(node.baseBoxY, cursorBottom + laneGap)
-      node.boxY = nextY
-      node.boxCenterY = nextY + node.boxHeight / 2
+      let candidateY = node.baseBoxY
+      let moved = true
+      while (moved) {
+        moved = false
+        const candidateBottom = candidateY + node.boxHeight
+        for (const interval of occupied) {
+          const overlaps = candidateBottom + laneGap > interval.start && candidateY < interval.end + laneGap
+          if (overlaps) {
+            candidateY = interval.end + laneGap
+            moved = true
+          }
+        }
+      }
+
+      node.boxY = candidateY
+      node.boxCenterY = candidateY + node.boxHeight / 2
       node.boxAnchorX = node.side > 0 ? node.boxX : node.boxX + node.boxWidth
       node.textX = node.boxX + 12
-      cursorBottom = nextY + node.boxHeight
+      occupied.push({ start: node.boxY, end: node.boxY + node.boxHeight })
+      occupied.sort((a, b) => a.start - b.start)
     })
   })
+}
+
+function buildAreaLaneBlockers(
+  areas: Array<{ y: number; side: -1 | 1 }>,
+  zone: 'upper' | 'root',
+) {
+  const blockers = new Map<string, Array<{ start: number; end: number }>>()
+  areas.forEach((area) => {
+    const key = `${zone}-${area.side}`
+    const lane = blockers.get(key) ?? []
+    lane.push({ start: area.y - 34, end: area.y + 34 })
+    blockers.set(key, lane)
+  })
+  return blockers
 }
 
 function shortenSkillLabel(text: string, max = 46) {
