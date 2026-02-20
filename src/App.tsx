@@ -62,6 +62,7 @@ type SkillLeafLayout = {
   boxCenterY: number
   boxAnchorX: number
   textX: number
+  textAnchor: 'start' | 'end'
 }
 
 const navTree = navData as NavNode[]
@@ -689,10 +690,10 @@ function RoadmapPage({ items }: { items: RoadmapItem[] }) {
                   <circle cx={topic.boxAnchorX} cy={topic.boxCenterY} r={topic.radius} className="skilltree-topic-orb" style={{ stroke: topic.statusColor }} />
                   <circle cx={topic.boxAnchorX} cy={topic.boxCenterY} r={Math.max(topic.radius - 6, 7)} className="skilltree-topic-core" style={{ fill: topic.statusColor }} />
                   <rect x={topic.boxX} y={topic.boxY} width={topic.boxWidth} height={topic.boxHeight} rx="10" className="skilltree-leaf-box" />
-                  <text x={topic.textX} y={topic.boxY + 17} className="skilltree-leaf-title">
+                  <text x={topic.textX} y={topic.boxY + 17} textAnchor={topic.textAnchor} className="skilltree-leaf-title">
                     {topic.displayTopic}
                   </text>
-                  <text x={topic.textX} y={topic.boxY + 33} className="skilltree-leaf-meta">
+                  <text x={topic.textX} y={topic.boxY + 33} textAnchor={topic.textAnchor} className="skilltree-leaf-meta">
                     {topic.status} · {topic.progress}%
                   </text>
                 </g>
@@ -705,10 +706,10 @@ function RoadmapPage({ items }: { items: RoadmapItem[] }) {
                   <circle cx={topic.boxAnchorX} cy={topic.boxCenterY} r={topic.radius} className="skilltree-topic-orb" style={{ stroke: topic.statusColor }} />
                   <circle cx={topic.boxAnchorX} cy={topic.boxCenterY} r={Math.max(topic.radius - 6, 7)} className="skilltree-topic-core" style={{ fill: topic.statusColor }} />
                   <rect x={topic.boxX} y={topic.boxY} width={topic.boxWidth} height={topic.boxHeight} rx="10" className="skilltree-leaf-box root-zone" />
-                  <text x={topic.textX} y={topic.boxY + 17} className="skilltree-leaf-title">
+                  <text x={topic.textX} y={topic.boxY + 17} textAnchor={topic.textAnchor} className="skilltree-leaf-title">
                     {topic.displayTopic}
                   </text>
-                  <text x={topic.textX} y={topic.boxY + 33} className="skilltree-leaf-meta">
+                  <text x={topic.textX} y={topic.boxY + 33} textAnchor={topic.textAnchor} className="skilltree-leaf-meta">
                     {topic.status} · {topic.progress}%
                   </text>
                 </g>
@@ -823,106 +824,124 @@ function buildRoadmapSkillTreeLayout(groups: Array<{ area: string; tasks: Roadma
   const upperGroups = groups.filter((group) => !rootZoneAreas.has(group.area))
 
   const width = 1700
-  const height = 1800
+  const height = 1900
   const rootX = width / 2
-  const rootY = height - 460
-  const areaYBase = rootY - 230
-  const slots = [-1, 1, -2, 2, -3, 3]
+  const rootY = height - 520
 
-  const areas: Array<{ area: string; x: number; y: number; color: string; side: -1 | 1 }> = []
-  const rootAreas: Array<{ area: string; x: number; y: number; color: string; side: -1 | 1 }> = []
+  const areas: Array<{ area: string; x: number; y: number; color: string; side: -1 | 1; bandTop: number; bandBottom: number }> = []
+  const rootAreas: Array<{ area: string; x: number; y: number; color: string; side: -1 | 1; bandTop: number; bandBottom: number }> = []
   const topics: SkillLeafLayout[] = []
   const rootTopics: SkillLeafLayout[] = []
 
-  upperGroups.forEach((group, idx) => {
-    const slot = slots[idx] ?? (idx % 2 === 0 ? -Math.ceil((idx + 1) / 2) : Math.ceil((idx + 1) / 2))
-    const side: -1 | 1 = slot < 0 ? -1 : 1
-    const depth = Math.abs(slot)
-    const x = rootX + side * (220 + (depth - 1) * 170)
-    const y = areaYBase - (depth - 1) * 86 - (idx % 2) * 16
-    const color = areaPalette[idx % areaPalette.length]
-    areas.push({ area: group.area, x, y, color, side })
+  const upperSideCursor: Record<-1 | 1, number> = { [-1]: rootY - 210, [1]: rootY - 210 }
+  const upperDepthBySide: Record<-1 | 1, number> = { [-1]: 0, [1]: 0 }
 
-    group.tasks.forEach((task, taskIdx) => {
-      const tier = Math.floor(taskIdx / 2)
-      const pairShift = taskIdx % 2 === 0 ? -1 : 1
-      const topicY = y - 96 - tier * 84 - (taskIdx % 2) * 12
-      const topicX = x + side * (135 + tier * 36) + pairShift * 44
-      const boxWidth = Math.max(250, Math.min(380, 98 + task.topic.length * 5.2))
+  upperGroups.forEach((group, idx) => {
+    const side: -1 | 1 = idx % 2 === 0 ? -1 : 1
+    const sideDepth = upperDepthBySide[side]
+    const x = rootX + side * (250 + sideDepth * 180)
+    const pairRows = Math.max(1, Math.ceil(group.tasks.length / 2))
+    const bandHeight = 140 + pairRows * 56
+    const y = upperSideCursor[side] - bandHeight / 2
+    upperSideCursor[side] = y - bandHeight / 2 - 40
+    upperDepthBySide[side] += 1
+    const color = areaPalette[idx % areaPalette.length]
+    const bandTop = y - (94 + (pairRows - 1) * 62)
+    const bandBottom = y + 34
+    areas.push({ area: group.area, x, y, color, side, bandTop, bandBottom })
+
+    group.tasks.forEach((task, taskIndex) => {
+      const row = Math.floor(taskIndex / 2)
+      const pairOffset = taskIndex % 2 === 0 ? -1 : 1
+      const pointY = y - 86 - row * 62 + pairOffset * 8
+      const pointX = x + side * (132 + row * 24) + pairOffset * 18
+      const boxWidth = Math.max(250, Math.min(320, 112 + task.topic.length * 4))
       const boxHeight = 40
-      const boxX = side > 0 ? topicX + 32 : topicX - 32 - boxWidth
+      const boxX = side > 0 ? pointX + 18 : pointX - 18 - boxWidth
       topics.push({
         id: task.id,
         topic: task.topic,
-        displayTopic: shortenSkillLabel(task.topic),
+        displayTopic: shortenSkillLabel(task.topic, 40),
         status: task.status,
         progress: task.progress,
         link: task.link,
-        x: topicX,
-        y: topicY,
+        x: pointX,
+        y: pointY,
         areaX: x,
         areaY: y,
         side,
         color,
         statusColor: statusColor[task.status],
-        radius: 12 + Math.round(task.progress / 20),
+        radius: 11 + Math.round(task.progress / 25),
         zone: 'upper',
         boxWidth,
         boxHeight,
-        baseBoxY: topicY - boxHeight / 2,
+        baseBoxY: pointY - boxHeight / 2,
         boxX,
-        boxY: topicY - boxHeight / 2,
-        boxCenterY: topicY,
+        boxY: pointY - boxHeight / 2,
+        boxCenterY: pointY,
         boxAnchorX: side > 0 ? boxX : boxX + boxWidth,
-        textX: boxX + 12,
+        textX: side > 0 ? boxX + 10 : boxX + boxWidth - 10,
+        textAnchor: side > 0 ? 'start' : 'end',
       })
     })
   })
 
-  const lowerSideSlots: Array<-1 | 1> = [-1, 1]
+  const lowerSideCursor: Record<-1 | 1, number> = { [-1]: rootY + 180, [1]: rootY + 180 }
+  const lowerDepthBySide: Record<-1 | 1, number> = { [-1]: 0, [1]: 0 }
   lowerGroups.forEach((group, idx) => {
-    const side = lowerSideSlots[idx % lowerSideSlots.length]
-    const x = rootX + side * 240
-    const y = rootY + 170
+    const side: -1 | 1 = group.area.toLowerCase().includes('python') ? 1 : -1
+    const sideDepth = lowerDepthBySide[side]
+    const x = rootX + side * (230 + sideDepth * 120)
+    const pairRows = Math.max(1, Math.ceil(group.tasks.length / 2))
+    const bandHeight = 140 + pairRows * 56
+    const y = lowerSideCursor[side] + bandHeight / 2
+    lowerSideCursor[side] = y + bandHeight / 2 + 40
+    lowerDepthBySide[side] += 1
     const color = areaPalette[(idx + upperGroups.length) % areaPalette.length]
-    rootAreas.push({ area: group.area, x, y, color, side })
+    const bandTop = y - 34
+    const bandBottom = y + 94 + (pairRows - 1) * 62
+    rootAreas.push({ area: group.area, x, y, color, side, bandTop, bandBottom })
 
-    group.tasks.forEach((task, taskIdx) => {
-      const topicY = y + 98 + taskIdx * 84
-      const topicX = x + side * (124 + (taskIdx % 2) * 36)
-      const boxWidth = Math.max(250, Math.min(380, 98 + task.topic.length * 5.2))
+    group.tasks.forEach((task, taskIndex) => {
+      const row = Math.floor(taskIndex / 2)
+      const pairOffset = taskIndex % 2 === 0 ? -1 : 1
+      const pointY = y + 86 + row * 62 + pairOffset * 8
+      const pointX = x + side * (122 + row * 22) + pairOffset * 18
+      const boxWidth = Math.max(250, Math.min(320, 112 + task.topic.length * 4))
       const boxHeight = 40
-      const boxX = side > 0 ? topicX + 32 : topicX - 32 - boxWidth
+      const boxX = side > 0 ? pointX + 18 : pointX - 18 - boxWidth
       rootTopics.push({
         id: task.id,
         topic: task.topic,
-        displayTopic: shortenSkillLabel(task.topic),
+        displayTopic: shortenSkillLabel(task.topic, 40),
         status: task.status,
         progress: task.progress,
         link: task.link,
-        x: topicX,
-        y: topicY,
+        x: pointX,
+        y: pointY,
         areaX: x,
         areaY: y,
         side,
         color,
         statusColor: statusColor[task.status],
-        radius: 12 + Math.round(task.progress / 20),
+        radius: 11 + Math.round(task.progress / 25),
         zone: 'root',
         boxWidth,
         boxHeight,
-        baseBoxY: topicY - boxHeight / 2,
+        baseBoxY: pointY - boxHeight / 2,
         boxX,
-        boxY: topicY - boxHeight / 2,
-        boxCenterY: topicY,
+        boxY: pointY - boxHeight / 2,
+        boxCenterY: pointY,
         boxAnchorX: side > 0 ? boxX : boxX + boxWidth,
-        textX: boxX + 12,
+        textX: side > 0 ? boxX + 10 : boxX + boxWidth - 10,
+        textAnchor: side > 0 ? 'start' : 'end',
       })
     })
   })
 
-  resolveLeafOverlap(topics, buildAreaLaneBlockers(areas, 'upper'))
-  resolveLeafOverlap(rootTopics, buildAreaLaneBlockers(rootAreas, 'root'))
+  resolveLeafOverlap(topics, buildAreaLaneBlockers(areas, 'upper'), 78)
+  resolveLeafOverlap(rootTopics, buildAreaLaneBlockers(rootAreas, 'root'), 78)
 
   return { width, height, root: { x: rootX, y: rootY }, areas, topics, rootAreas, rootTopics }
 }
@@ -930,6 +949,7 @@ function buildRoadmapSkillTreeLayout(groups: Array<{ area: string; tasks: Roadma
 function resolveLeafOverlap(
   nodes: SkillLeafLayout[],
   blockers: Map<string, Array<{ start: number; end: number }>>,
+  maxShift: number,
 ) {
   const laneGap = 10
   const lanes = new Map<string, SkillLeafLayout[]>()
@@ -946,39 +966,61 @@ function resolveLeafOverlap(
     lane.sort((a, b) => a.baseBoxY - b.baseBoxY)
 
     lane.forEach((node) => {
-      let candidateY = node.baseBoxY
-      let moved = true
-      while (moved) {
-        moved = false
-        const candidateBottom = candidateY + node.boxHeight
-        for (const interval of occupied) {
-          const overlaps = candidateBottom + laneGap > interval.start && candidateY < interval.end + laneGap
-          if (overlaps) {
-            candidateY = interval.end + laneGap
-            moved = true
-          }
-        }
-      }
-
+      const candidateY = findNearestAvailableY(node.baseBoxY, node.boxHeight, occupied, laneGap, maxShift)
       node.boxY = candidateY
       node.boxCenterY = candidateY + node.boxHeight / 2
       node.boxAnchorX = node.side > 0 ? node.boxX : node.boxX + node.boxWidth
-      node.textX = node.boxX + 12
+      node.textX = node.side > 0 ? node.boxX + 10 : node.boxX + node.boxWidth - 10
       occupied.push({ start: node.boxY, end: node.boxY + node.boxHeight })
       occupied.sort((a, b) => a.start - b.start)
     })
   })
 }
 
+function findNearestAvailableY(
+  baseY: number,
+  height: number,
+  occupied: Array<{ start: number; end: number }>,
+  gap: number,
+  maxShift: number,
+) {
+  const step = 8
+  for (let distance = 0; distance <= maxShift; distance += step) {
+    const offsets = distance === 0 ? [0] : [distance, -distance]
+    for (const offset of offsets) {
+      const candidate = baseY + offset
+      if (isYFree(candidate, height, occupied, gap)) return candidate
+    }
+  }
+
+  let fallback = baseY
+  occupied.forEach((interval) => {
+    if (fallback + height + gap > interval.start && fallback < interval.end + gap) {
+      fallback = interval.end + gap
+    }
+  })
+  return fallback
+}
+
+function isYFree(
+  y: number,
+  height: number,
+  occupied: Array<{ start: number; end: number }>,
+  gap: number,
+) {
+  const bottom = y + height
+  return !occupied.some((interval) => bottom + gap > interval.start && y < interval.end + gap)
+}
+
 function buildAreaLaneBlockers(
-  areas: Array<{ y: number; side: -1 | 1 }>,
+  areas: Array<{ side: -1 | 1; bandTop: number; bandBottom: number }>,
   zone: 'upper' | 'root',
 ) {
   const blockers = new Map<string, Array<{ start: number; end: number }>>()
   areas.forEach((area) => {
     const key = `${zone}-${area.side}`
     const lane = blockers.get(key) ?? []
-    lane.push({ start: area.y - 34, end: area.y + 34 })
+    lane.push({ start: area.bandTop - 8, end: area.bandBottom + 8 })
     blockers.set(key, lane)
   })
   return blockers
