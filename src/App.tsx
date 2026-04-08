@@ -111,10 +111,15 @@ function Workspace() {
     if (stored === 'dark' || stored === 'light') return stored
     return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark'
   })
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => window.localStorage.getItem('profile-sidebar-collapsed') === 'true')
 
   useEffect(() => {
     window.localStorage.setItem('profile-theme', theme)
   }, [theme])
+
+  useEffect(() => {
+    window.localStorage.setItem('profile-sidebar-collapsed', String(sidebarCollapsed))
+  }, [sidebarCollapsed])
 
   useEffect(() => {
     if (normalizedSlug !== slug) {
@@ -145,10 +150,21 @@ function Workspace() {
   }
 
   return (
-    <div className={`app-shell theme-${theme}`}>
+    <div className={`app-shell theme-${theme} ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
       <aside className="left-rail">
+        <div className="rail-head">
+          <div className="rail-title">{sidebarCollapsed ? 'P' : 'Profile'}</div>
+          <button
+            className="rail-collapse-toggle"
+            type="button"
+            onClick={() => setSidebarCollapsed((current) => !current)}
+            aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            aria-expanded={!sidebarCollapsed}
+          >
+            {sidebarCollapsed ? '→' : '←'}
+          </button>
+        </div>
         <div className="rail-main">
-          <div className="rail-title">Profile</div>
           <SidebarTree tree={navTree} activeMenuId={activeMenuId} onMenuAction={handleMenuAction} />
         </div>
         <div className="rail-version">
