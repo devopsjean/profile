@@ -12,7 +12,8 @@
     "title": "Projects",
     "type": "folder",
     "children": [
-      { "title": "SRE-mini-project", "type": "page", "slug": "sre-mini-project" }
+      { "title": "SRE-mini-project", "type": "page", "slug": "sre-mini-project" },
+      { "title": "solflix-aws-portfolio", "type": "page", "slug": "solflix-aws-portfolio" }
     ]
   },
   {

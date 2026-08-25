@@ -38,6 +38,13 @@ type RoadmapItem = {
   link: string
 }
 
+type ProjectMarkdownConfig = {
+  title: string
+  readmeUrl: string
+  repoBlobBase: string
+  repoRawBase: string
+}
+
 type SkillLeafLayout = {
   id: string
   clusterId: string
@@ -84,6 +91,20 @@ const experiences = timelineData as TimelineItem[]
 const roadmapItems = roadmapData as RoadmapItem[]
 const sidebarVersion = `${__APP_RELEASE_STAGE__} v${__APP_BUILD_VERSION__}`
 const sidebarBuild = `build ${__APP_BUILD_HASH__}`
+const projectMarkdownPages: Record<string, ProjectMarkdownConfig> = {
+  'sre-mini-project': {
+    title: 'SRE-mini-project',
+    readmeUrl: 'https://raw.githubusercontent.com/devopsjean/mini-project/main/README.md',
+    repoBlobBase: 'https://github.com/devopsjean/mini-project/blob/main/',
+    repoRawBase: 'https://raw.githubusercontent.com/devopsjean/mini-project/main/',
+  },
+  'solflix-aws-portfolio': {
+    title: 'solflix-aws-portfolio',
+    readmeUrl: 'https://raw.githubusercontent.com/devopsjean/solflix-aws-portfolio/main/README.md',
+    repoBlobBase: 'https://github.com/devopsjean/solflix-aws-portfolio/blob/main/',
+    repoRawBase: 'https://raw.githubusercontent.com/devopsjean/solflix-aws-portfolio/main/',
+  },
+}
 
 function App() {
   return (
@@ -100,9 +121,10 @@ function Workspace() {
   const navigate = useNavigate()
   const normalizedSlug = normalizeSlug(slug)
   const [activeMenuId, setActiveMenuId] = useState(() => {
+    const projectPage = projectMarkdownPages[slug]
     if (slug === 'experience-timeline') return 'Profile/Timeline'
     if (slug === 'experience-chart') return 'Profile/Timetable'
-    if (slug === 'sre-mini-project') return 'Projects/SRE-mini-project'
+    if (projectPage) return `Projects/${projectPage.title}`
     if (slug === 'roadmap-mindmap') return 'Roadmap/Mindmap Demo'
     return 'Profile'
   })
@@ -185,7 +207,7 @@ function Workspace() {
         </header>
 
         {normalizedSlug === 'profile' && <ProfilePage />}
-        {normalizedSlug === 'sre-mini-project' && <SreMiniProjectPage />}
+        {projectMarkdownPages[normalizedSlug] && <ProjectMarkdownPage key={normalizedSlug} project={projectMarkdownPages[normalizedSlug]} />}
         {normalizedSlug === 'roadmap-mindmap' && <RoadmapPage items={roadmapItems} />}
       </main>
     </div>
@@ -766,17 +788,15 @@ function RoadmapPage({ items }: { items: RoadmapItem[] }) {
   )
 }
 
-function SreMiniProjectPage() {
+function ProjectMarkdownPage({ project }: { project: ProjectMarkdownConfig }) {
   const [markdown, setMarkdown] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
-  const repoBlobBase = 'https://github.com/devopsjean/mini-project/blob/main/'
-  const repoRawBase = 'https://raw.githubusercontent.com/devopsjean/mini-project/main/'
 
   useEffect(() => {
     const controller = new AbortController()
-    const readmeUrl = 'https://raw.githubusercontent.com/devopsjean/mini-project/main/README.md'
-    fetch(readmeUrl, { signal: controller.signal })
+
+    fetch(project.readmeUrl, { signal: controller.signal })
       .then((response) => {
         if (!response.ok) throw new Error(`Failed to load README (${response.status})`)
         return response.text()
@@ -792,11 +812,11 @@ function SreMiniProjectPage() {
       })
 
     return () => controller.abort()
-  }, [])
+  }, [project.readmeUrl])
 
   return (
     <section className="doc-card markdown-card">
-      <h3>SRE-mini-project README Preview</h3>
+      <h3>{project.title} README Preview</h3>
       {loading && <p>Loading README preview...</p>}
       {error && <p>{error}</p>}
       {!loading && !error && (
@@ -804,9 +824,9 @@ function SreMiniProjectPage() {
           <ReactMarkdown
             remarkPlugins={[remarkGfm]}
             components={{
-              img: ({ src, alt }) => <img src={resolveReadmeUrl(src, repoRawBase, repoBlobBase, true)} alt={alt ?? ''} loading="lazy" />,
+              img: ({ src, alt }) => <img src={resolveReadmeUrl(src, project.repoRawBase, project.repoBlobBase, true)} alt={alt ?? ''} loading="lazy" />,
               a: ({ href, children }) => (
-                <a href={resolveReadmeUrl(href, repoRawBase, repoBlobBase, false)} target="_blank" rel="noreferrer">
+                <a href={resolveReadmeUrl(href, project.repoRawBase, project.repoBlobBase, false)} target="_blank" rel="noreferrer">
                   {children}
                 </a>
               ),
@@ -850,7 +870,8 @@ function addDays(date: Date, days: number) {
 }
 
 function pageTitleFromSlug(slug: string) {
-  if (slug === 'sre-mini-project') return 'SRE-mini-project'
+  const projectPage = projectMarkdownPages[slug]
+  if (projectPage) return projectPage.title
   if (slug === 'roadmap-mindmap') return 'Skill Tree'
   return 'Profile'
 }
@@ -1482,7 +1503,7 @@ function LinkedInIcon() {
 
 function normalizeSlug(slug: string) {
   if (slug === 'experience-timeline' || slug === 'experience-chart') return 'profile'
-  if (slug === 'sre-mini-project' || slug === 'roadmap-mindmap' || slug === 'profile') return slug
+  if (projectMarkdownPages[slug] || slug === 'roadmap-mindmap' || slug === 'profile') return slug
   return 'profile'
 }
 
