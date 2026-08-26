@@ -643,6 +643,11 @@ thead th {
 }
 
 .skilltree-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
   padding: 14px 16px 10px;
   border-bottom: 1px solid var(--line);
   background: linear-gradient(180deg, rgba(22, 22, 30, 0.8), rgba(22, 22, 30, 0.35));
@@ -658,6 +663,48 @@ thead th {
   color: #b9bcc7;
 }
 
+.skilltree-editor-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 0 0 auto;
+}
+
+.skilltree-editor-button {
+  border: 1px solid rgba(141, 152, 178, 0.45);
+  border-radius: 6px;
+  background: rgba(26, 29, 37, 0.95);
+  color: #ececf2;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 8px 12px;
+}
+
+.skilltree-editor-button:hover:not(:disabled) {
+  border-color: rgba(123, 225, 147, 0.6);
+}
+
+.skilltree-editor-button:disabled {
+  cursor: wait;
+  opacity: 0.72;
+}
+
+.skilltree-save-status {
+  color: #b9bcc7;
+  font-size: 12px;
+  font-weight: 700;
+  min-width: 66px;
+}
+
+.skilltree-save-status.saved {
+  color: #7be193;
+}
+
+.skilltree-save-status.error {
+  color: #ff8f99;
+}
+
 .skilltree-scroll {
   height: calc(100vh - 220px);
   overflow-x: hidden;
@@ -670,6 +717,11 @@ thead th {
   width: 100%;
   height: auto;
   min-width: 0;
+}
+
+.skilltree-card.layout-editor .skilltree-svg {
+  touch-action: none;
+  user-select: none;
 }
 
 .skilltree-bg {
@@ -732,10 +784,25 @@ thead th {
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0;
+  pointer-events: none;
 }
 
 .skilltree-topic-group {
   cursor: pointer;
+}
+
+.skilltree-area-group.editable,
+.skilltree-topic-group.editable {
+  cursor: grab;
+}
+
+.skilltree-area-group.editable:active,
+.skilltree-topic-group.editable:active {
+  cursor: grabbing;
+}
+
+.skilltree-area-group.editable .skilltree-area-node {
+  stroke: rgba(123, 225, 147, 0.6);
 }
 
 .skilltree-topic-orb {

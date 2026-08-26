@@ -1,11 +1,12 @@
-import { useEffect, useMemo, useRef, useState, type CSSProperties, type MouseEvent } from 'react'
-import { Navigate, Route, Routes, useNavigate, useParams } from 'react-router-dom'
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type MouseEvent, type PointerEvent as ReactPointerEvent } from 'react'
+import { Navigate, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import navData from './content/nav.json'
 import profileData from './content/profile.json'
 import timelineData from './content/timeline.json'
 import roadmapData from './content/roadmap.json'
+import roadmapLayoutData from './content/roadmap-layout.json'
 
 type NavFolder = { title: string; type: 'folder'; slug?: string; children: NavNode[] }
 type NavPage = { title: string; type: 'page'; slug: string }
@@ -87,9 +88,63 @@ type SkillAreaLayout = {
   bandBottom: number
 }
 
+type SkillTreeViewBox = {
+  x: number
+  y: number
+  width: number
+  height: number
+}
+
+type SkillTreeLayoutBase = {
+  width: number
+  height: number
+  root: { x: number; y: number }
+  areas: SkillAreaLayout[]
+  topics: SkillLeafLayout[]
+  rootAreas: SkillAreaLayout[]
+  rootTopics: SkillLeafLayout[]
+}
+
+type SkillTreeLayout = SkillTreeLayoutBase & {
+  viewBox: SkillTreeViewBox
+}
+
+type SavedLayoutPoint = {
+  x: number
+  y: number
+}
+
+type SavedLayoutLeaf = SavedLayoutPoint & {
+  boxX: number
+  boxY: number
+}
+
+type RoadmapSavedLayout = {
+  version: 1
+  updatedAt?: string | null
+  areas: Record<string, SavedLayoutPoint>
+  rootAreas: Record<string, SavedLayoutPoint>
+  topics: Record<string, SavedLayoutLeaf>
+  rootTopics: Record<string, SavedLayoutLeaf>
+}
+
+type SkillTreeDragTarget =
+  | { type: 'area'; zone: 'upper' | 'root'; key: string }
+  | { type: 'topic'; zone: 'upper' | 'root'; id: string }
+
+type SkillTreeDragState = {
+  pointerId: number
+  target: SkillTreeDragTarget
+  lastX: number
+  lastY: number
+}
+
+type LayoutSaveStatus = 'idle' | 'saving' | 'saved' | 'error'
+
 const navTree = navData as NavNode[]
 const experiences = timelineData as TimelineItem[]
 const roadmapItems = roadmapData as RoadmapItem[]
+const roadmapSavedLayout = roadmapLayoutData as RoadmapSavedLayout
 const sidebarVersion = `${__APP_RELEASE_STAGE__} v${__APP_BUILD_VERSION__}`
 const sidebarBuild = `build ${__APP_BUILD_HASH__}`
 const projectMarkdownPages: Record<string, ProjectMarkdownConfig> = {
@@ -636,8 +691,36 @@ function ExperienceChartTable({
   )
 }
 
+function isLocalLayoutHost() {
+  return ['localhost', '127.0.0.1', '::1'].includes(window.location.hostname)
+}
+
+function layoutSaveStatusLabel(status: LayoutSaveStatus) {
+  if (status === 'saving') return 'Saving'
+  if (status === 'saved') return 'Saved'
+  if (status === 'error') return 'Save failed'
+  return 'Local edit'
+}
+
+function preventEditorLinkClick(event: MouseEvent<HTMLAnchorElement>) {
+  event.preventDefault()
+}
+
+function getSvgPointerPoint(svg: SVGSVGElement, event: ReactPointerEvent<Element>) {
+  const matrix = svg.getScreenCTM()
+  if (!matrix) return null
+  const point = svg.createSVGPoint()
+  point.x = event.clientX
+  point.y = event.clientY
+  return point.matrixTransform(matrix.inverse())
+}
+
 function RoadmapPage({ items }: { items: RoadmapItem[] }) {
+  const location = useLocation()
   const treeScrollRef = useRef<HTMLDivElement>(null)
+  const skillTreeSvgRef = useRef<SVGSVGElement>(null)
+  const [dragState, setDragState] = useState<SkillTreeDragState | null>(null)
+  const [saveStatus, setSaveStatus] = useState<LayoutSaveStatus>('idle')
   const grouped = useMemo(() => {
     const map = new Map<string, RoadmapItem[]>()
     items.forEach((item) => {
@@ -650,31 +733,113 @@ function RoadmapPage({ items }: { items: RoadmapItem[] }) {
       tasks: tasks.slice().sort((a, b) => b.progress - a.progress),
     }))
   }, [items])
-  const layout = useMemo(() => buildRoadmapSkillTreeLayout(grouped), [grouped])
+  const baseLayout = useMemo(() => buildRoadmapSkillTreeLayout(grouped, roadmapSavedLayout), [grouped])
+  const [draftLayout, setDraftLayout] = useState(baseLayout)
+  const layoutEditorEnabled = useMemo(() => {
+    const params = new URLSearchParams(location.search)
+    return isLocalLayoutHost() && params.get('layout') === 'edit'
+  }, [location.search])
+  const layout = layoutEditorEnabled ? draftLayout : baseLayout
+
+  useEffect(() => {
+    setDraftLayout(baseLayout)
+    setDragState(null)
+    setSaveStatus('idle')
+  }, [baseLayout])
 
   useEffect(() => {
     const node = treeScrollRef.current
     if (!node) return
     requestAnimationFrame(() => {
-      const rootYRatio = (layout.root.y - layout.viewBox.y) / layout.viewBox.height
+      const rootYRatio = (baseLayout.root.y - baseLayout.viewBox.y) / baseLayout.viewBox.height
       node.scrollTop = Math.max(0, node.scrollHeight * rootYRatio - node.clientHeight * 0.58)
     })
-  }, [layout])
+  }, [baseLayout])
+
+  const handleSkillTreePointerDown = (
+    event: ReactPointerEvent<SVGElement>,
+    target: SkillTreeDragTarget,
+  ) => {
+    if (!layoutEditorEnabled || event.button !== 0) return
+    const svg = skillTreeSvgRef.current
+    if (!svg) return
+    const point = getSvgPointerPoint(svg, event)
+    if (!point) return
+
+    event.preventDefault()
+    event.stopPropagation()
+    svg.setPointerCapture(event.pointerId)
+    setDragState({ pointerId: event.pointerId, target, lastX: point.x, lastY: point.y })
+    setSaveStatus('idle')
+  }
+
+  const handleSkillTreePointerMove = (event: ReactPointerEvent<SVGSVGElement>) => {
+    if (!dragState || dragState.pointerId !== event.pointerId) return
+    const svg = skillTreeSvgRef.current
+    if (!svg) return
+    const point = getSvgPointerPoint(svg, event)
+    if (!point) return
+
+    event.preventDefault()
+    const dx = point.x - dragState.lastX
+    const dy = point.y - dragState.lastY
+    if (Math.abs(dx) < 0.1 && Math.abs(dy) < 0.1) return
+
+    setDraftLayout((current) => moveSkillTreeTarget(current, dragState.target, dx, dy))
+    setDragState({ ...dragState, lastX: point.x, lastY: point.y })
+  }
+
+  const handleSkillTreePointerEnd = (event: ReactPointerEvent<SVGSVGElement>) => {
+    if (!dragState || dragState.pointerId !== event.pointerId) return
+    const svg = skillTreeSvgRef.current
+    if (svg?.hasPointerCapture(event.pointerId)) svg.releasePointerCapture(event.pointerId)
+    setDragState(null)
+  }
+
+  const handleSaveLayout = async () => {
+    setSaveStatus('saving')
+    try {
+      const response = await fetch('/__layout/roadmap', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(exportRoadmapSavedLayout(draftLayout)),
+      })
+      if (!response.ok) throw new Error(`Layout save failed with ${response.status}`)
+      setSaveStatus('saved')
+    } catch (error) {
+      console.error(error)
+      setSaveStatus('error')
+    }
+  }
 
   return (
     <section className="skilltree-layout">
-      <article className="doc-card skilltree-card">
+      <article className={`doc-card skilltree-card ${layoutEditorEnabled ? 'layout-editor' : ''}`}>
         <div className="skilltree-head">
-          <h3>DevOps & SRE Skill Tree</h3>
-          <p>Start at the root zone, scroll up for advanced branches and down for root branches.</p>
+          <div>
+            <h3>DevOps & SRE Skill Tree</h3>
+            <p>Start at the root zone, scroll up for advanced branches and down for root branches.</p>
+          </div>
+          {layoutEditorEnabled && (
+            <div className="skilltree-editor-actions">
+              <button className="skilltree-editor-button" type="button" onClick={handleSaveLayout} disabled={saveStatus === 'saving'}>
+                {saveStatus === 'saving' ? 'Saving' : 'Save layout'}
+              </button>
+              <span className={`skilltree-save-status ${saveStatus}`}>{layoutSaveStatusLabel(saveStatus)}</span>
+            </div>
+          )}
         </div>
 
         <div className="skilltree-scroll" ref={treeScrollRef}>
           <svg
+            ref={skillTreeSvgRef}
             className="skilltree-svg"
             viewBox={`${layout.viewBox.x} ${layout.viewBox.y} ${layout.viewBox.width} ${layout.viewBox.height}`}
             role="img"
             aria-label="DevOps and SRE skill tree"
+            onPointerMove={handleSkillTreePointerMove}
+            onPointerUp={handleSkillTreePointerEnd}
+            onPointerCancel={handleSkillTreePointerEnd}
           >
             <defs>
               <linearGradient id="trunkGlow" x1="0%" y1="100%" x2="0%" y2="0%">
@@ -734,7 +899,12 @@ function RoadmapPage({ items }: { items: RoadmapItem[] }) {
             </text>
 
             {layout.areas.map((area) => (
-              <g key={area.area} transform={`translate(${area.x}, ${area.y})`}>
+              <g
+                key={area.area}
+                className={`skilltree-area-group ${layoutEditorEnabled ? 'editable' : ''}`}
+                transform={`translate(${area.x}, ${area.y})`}
+                onPointerDown={(event) => handleSkillTreePointerDown(event, { type: 'area', zone: 'upper', key: area.key })}
+              >
                 <rect x={-area.boxWidth / 2} y="-16" width={area.boxWidth} height="32" rx="8" className="skilltree-area-node" />
                 <text textAnchor="middle" y="5" className="skilltree-area-label">
                   {area.area}
@@ -743,7 +913,12 @@ function RoadmapPage({ items }: { items: RoadmapItem[] }) {
             ))}
 
             {layout.rootAreas.map((area) => (
-              <g key={`root-node-${area.area}`} transform={`translate(${area.x}, ${area.y})`}>
+              <g
+                key={`root-node-${area.area}`}
+                className={`skilltree-area-group ${layoutEditorEnabled ? 'editable' : ''}`}
+                transform={`translate(${area.x}, ${area.y})`}
+                onPointerDown={(event) => handleSkillTreePointerDown(event, { type: 'area', zone: 'root', key: area.key })}
+              >
                 <rect x={-area.boxWidth / 2} y="-16" width={area.boxWidth} height="32" rx="8" className="skilltree-area-node root-zone" />
                 <text textAnchor="middle" y="5" className="skilltree-area-label">
                   {area.area}
@@ -752,8 +927,11 @@ function RoadmapPage({ items }: { items: RoadmapItem[] }) {
             ))}
 
             {layout.topics.map((topic) => (
-              <a key={topic.id} href={topic.link} target="_blank" rel="noreferrer">
-                <g className="skilltree-topic-group">
+              <a key={topic.id} href={topic.link} target="_blank" rel="noreferrer" onClick={layoutEditorEnabled ? preventEditorLinkClick : undefined}>
+                <g
+                  className={`skilltree-topic-group ${layoutEditorEnabled ? 'editable' : ''}`}
+                  onPointerDown={(event) => handleSkillTreePointerDown(event, { type: 'topic', zone: 'upper', id: topic.id })}
+                >
                   <title>{`${topic.topic} | ${topic.status} ${topic.progress}%`}</title>
                   <circle cx={topic.boxAnchorX} cy={topic.boxCenterY} r={topic.radius} className="skilltree-topic-orb" style={{ stroke: topic.statusColor }} />
                   <circle cx={topic.boxAnchorX} cy={topic.boxCenterY} r={Math.max(topic.radius - 6, 7)} className="skilltree-topic-core" style={{ fill: topic.statusColor }} />
@@ -766,8 +944,11 @@ function RoadmapPage({ items }: { items: RoadmapItem[] }) {
             ))}
 
             {layout.rootTopics.map((topic) => (
-              <a key={`root-${topic.id}`} href={topic.link} target="_blank" rel="noreferrer">
-                <g className="skilltree-topic-group">
+              <a key={`root-${topic.id}`} href={topic.link} target="_blank" rel="noreferrer" onClick={layoutEditorEnabled ? preventEditorLinkClick : undefined}>
+                <g
+                  className={`skilltree-topic-group ${layoutEditorEnabled ? 'editable' : ''}`}
+                  onPointerDown={(event) => handleSkillTreePointerDown(event, { type: 'topic', zone: 'root', id: topic.id })}
+                >
                   <title>{`${topic.topic} | ${topic.status} ${topic.progress}%`}</title>
                   <circle cx={topic.boxAnchorX} cy={topic.boxCenterY} r={topic.radius} className="skilltree-topic-orb" style={{ stroke: topic.statusColor }} />
                   <circle cx={topic.boxAnchorX} cy={topic.boxCenterY} r={Math.max(topic.radius - 6, 7)} className="skilltree-topic-core" style={{ fill: topic.statusColor }} />
@@ -873,7 +1054,7 @@ function pageTitleFromSlug(slug: string) {
   return 'Profile'
 }
 
-function buildRoadmapSkillTreeLayout(groups: Array<{ area: string; tasks: RoadmapItem[] }>) {
+function buildRoadmapSkillTreeLayout(groups: Array<{ area: string; tasks: RoadmapItem[] }>, savedLayout?: RoadmapSavedLayout): SkillTreeLayout {
   const areaPalette = ['#b14b59', '#8a4e86', '#5f8ab6', '#5f9b7c', '#9f6f47', '#9a5f9f']
   const statusColor: Record<RoadmapStatus, string> = {
     Done: '#7be193',
@@ -1034,7 +1215,7 @@ function buildRoadmapSkillTreeLayout(groups: Array<{ area: string; tasks: Roadma
     })
   })
 
-  stackUpperAreaClusters(areas, topics, 52, 34)
+  stackUpperAreaClusters(areas, topics, rootY - 140, 30)
   stackRootAreaClusters(rootAreas, rootTopics, rootY + 104, 34)
   resolveLeafOverlap(topics, buildAreaLaneBlockers(areas), 220, leafTextPadding)
   resolveLeafOverlap(rootTopics, buildAreaLaneBlockers(rootAreas), 220, leafTextPadding)
@@ -1062,23 +1243,34 @@ function buildRoadmapSkillTreeLayout(groups: Array<{ area: string; tasks: Roadma
   separateAreaNodes(rootAreas, rootTopics, { x: rootX, y: rootY }, { zone: 'root', zoneGap: 94, height, boundaryPadding: 20 })
   resolveLeafOverlap(topics, buildAreaLaneBlockers(areas), 220, leafTextPadding)
   resolveLeafOverlap(rootTopics, buildAreaLaneBlockers(rootAreas), 220, leafTextPadding)
-  const viewBox = computeSkillTreeViewBox({ width, height, root: { x: rootX, y: rootY }, areas, rootAreas, topics, rootTopics })
+  const layoutBase = { width, height, root: { x: rootX, y: rootY }, areas, topics, rootAreas, rootTopics }
+  applySavedRoadmapLayout(layoutBase, savedLayout)
+  const viewBox = computeSkillTreeViewBox(layoutBase)
 
-  return { width, height, root: { x: rootX, y: rootY }, areas, topics, rootAreas, rootTopics, viewBox }
+  return { ...layoutBase, viewBox }
 }
 
-function stackUpperAreaClusters(areas: SkillAreaLayout[], leaves: SkillLeafLayout[], topPadding: number, gap: number) {
+function stackUpperAreaClusters(areas: SkillAreaLayout[], leaves: SkillLeafLayout[], targetBandBottom: number, gap: number) {
   const leavesByCluster = groupLeavesByCluster(leaves)
   ;([-1, 1] as const).forEach((side) => {
-    let cursor = topPadding
+    let cursor = targetBandBottom
     areas
       .filter((area) => area.side === side)
-      .sort((a, b) => a.bandTop - b.bandTop)
+      .sort(compareUpperAreaStack)
       .forEach((area) => {
-        translateAreaCluster(area, leavesByCluster.get(area.key) ?? [], 0, cursor - area.bandTop)
-        cursor = area.bandBottom + gap
+        translateAreaCluster(area, leavesByCluster.get(area.key) ?? [], 0, cursor - area.bandBottom)
+        cursor = area.bandTop - gap
       })
   })
+}
+
+const upperAreaVisualOrder = ['Linux & Systems', 'Observability', 'Cloud Native Projects', 'Cloud Native FinOps']
+
+function compareUpperAreaStack(a: SkillAreaLayout, b: SkillAreaLayout) {
+  const aOrder = upperAreaVisualOrder.indexOf(a.area)
+  const bOrder = upperAreaVisualOrder.indexOf(b.area)
+  if (aOrder >= 0 && bOrder >= 0) return bOrder - aOrder
+  return b.bandBottom - a.bandBottom
 }
 
 function stackRootAreaClusters(areas: SkillAreaLayout[], leaves: SkillLeafLayout[], startY: number, gap: number) {
@@ -1124,6 +1316,140 @@ function translateAreaCluster(area: SkillAreaLayout, leaves: SkillLeafLayout[], 
     leaf.minY += dy
     leaf.maxY += dy
   })
+}
+
+function translateLeafLayout(leaf: SkillLeafLayout, dx: number, dy: number) {
+  leaf.x += dx
+  leaf.y += dy
+  leaf.baseBoxY += dy
+  leaf.boxX += dx
+  leaf.boxY += dy
+  leaf.boxCenterY += dy
+  leaf.boxAnchorX += dx
+  leaf.textX += dx
+  leaf.minY += dy
+  leaf.maxY += dy
+}
+
+function applySavedRoadmapLayout(layout: SkillTreeLayoutBase, savedLayout?: RoadmapSavedLayout) {
+  if (!savedLayout || savedLayout.version !== 1) return
+
+  applySavedAreaPositions(layout.areas, layout.topics, savedLayout.areas ?? {})
+  applySavedAreaPositions(layout.rootAreas, layout.rootTopics, savedLayout.rootAreas ?? {})
+  applySavedLeafPositions(layout.topics, savedLayout.topics ?? {})
+  applySavedLeafPositions(layout.rootTopics, savedLayout.rootTopics ?? {})
+}
+
+function applySavedAreaPositions(
+  areas: SkillAreaLayout[],
+  leaves: SkillLeafLayout[],
+  savedPositions: Record<string, SavedLayoutPoint>,
+) {
+  const leavesByCluster = groupLeavesByCluster(leaves)
+  areas.forEach((area) => {
+    const saved = savedPositions[area.key]
+    if (!isFiniteSavedPoint(saved)) return
+    translateAreaCluster(area, leavesByCluster.get(area.key) ?? [], saved.x - area.x, saved.y - area.y)
+  })
+}
+
+function applySavedLeafPositions(leaves: SkillLeafLayout[], savedPositions: Record<string, SavedLayoutLeaf>) {
+  leaves.forEach((leaf) => {
+    const saved = savedPositions[leaf.id]
+    if (!isFiniteSavedLeaf(saved)) return
+    translateLeafLayout(leaf, saved.boxX - leaf.boxX, saved.boxY - leaf.boxY)
+  })
+}
+
+function isFiniteSavedPoint(point: SavedLayoutPoint | undefined): point is SavedLayoutPoint {
+  return Boolean(point && Number.isFinite(point.x) && Number.isFinite(point.y))
+}
+
+function isFiniteSavedLeaf(point: SavedLayoutLeaf | undefined): point is SavedLayoutLeaf {
+  return Boolean(
+    point &&
+      Number.isFinite(point.x) &&
+      Number.isFinite(point.y) &&
+      Number.isFinite(point.boxX) &&
+      Number.isFinite(point.boxY),
+  )
+}
+
+function cloneSkillTreeLayout(layout: SkillTreeLayout): SkillTreeLayout {
+  return {
+    width: layout.width,
+    height: layout.height,
+    root: { ...layout.root },
+    areas: layout.areas.map((area) => ({ ...area })),
+    topics: layout.topics.map((topic) => ({ ...topic })),
+    rootAreas: layout.rootAreas.map((area) => ({ ...area })),
+    rootTopics: layout.rootTopics.map((topic) => ({ ...topic })),
+    viewBox: { ...layout.viewBox },
+  }
+}
+
+function moveSkillTreeTarget(layout: SkillTreeLayout, target: SkillTreeDragTarget, dx: number, dy: number): SkillTreeLayout {
+  const next = cloneSkillTreeLayout(layout)
+
+  if (target.type === 'area') {
+    const areas = target.zone === 'upper' ? next.areas : next.rootAreas
+    const leaves = target.zone === 'upper' ? next.topics : next.rootTopics
+    const area = areas.find((candidate) => candidate.key === target.key)
+    if (!area) return layout
+    translateAreaCluster(area, leaves.filter((leaf) => leaf.clusterId === target.key), dx, dy)
+    return next
+  }
+
+  const leaves = target.zone === 'upper' ? next.topics : next.rootTopics
+  const leaf = leaves.find((candidate) => candidate.id === target.id)
+  if (!leaf) return layout
+  translateLeafLayout(leaf, dx, dy)
+  return next
+}
+
+function exportRoadmapSavedLayout(layout: SkillTreeLayout): RoadmapSavedLayout {
+  return {
+    version: 1,
+    updatedAt: new Date().toISOString(),
+    areas: exportAreaPositions(layout.areas),
+    rootAreas: exportAreaPositions(layout.rootAreas),
+    topics: exportLeafPositions(layout.topics),
+    rootTopics: exportLeafPositions(layout.rootTopics),
+  }
+}
+
+function exportAreaPositions(areas: SkillAreaLayout[]) {
+  return sortedLayoutRecord(
+    areas.map((area) => [
+      area.key,
+      {
+        x: roundLayoutCoordinate(area.x),
+        y: roundLayoutCoordinate(area.y),
+      },
+    ]),
+  )
+}
+
+function exportLeafPositions(leaves: SkillLeafLayout[]) {
+  return sortedLayoutRecord(
+    leaves.map((leaf) => [
+      leaf.id,
+      {
+        x: roundLayoutCoordinate(leaf.x),
+        y: roundLayoutCoordinate(leaf.y),
+        boxX: roundLayoutCoordinate(leaf.boxX),
+        boxY: roundLayoutCoordinate(leaf.boxY),
+      },
+    ]),
+  )
+}
+
+function sortedLayoutRecord<T>(entries: Array<[string, T]>): Record<string, T> {
+  return Object.fromEntries(entries.sort(([a], [b]) => a.localeCompare(b)))
+}
+
+function roundLayoutCoordinate(value: number) {
+  return Number(value.toFixed(2))
 }
 
 function compactClustersTowardCore(
