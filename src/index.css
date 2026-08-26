@@ -660,13 +660,15 @@ thead th {
 
 .skilltree-scroll {
   height: calc(100vh - 220px);
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .skilltree-svg {
   display: block;
   width: 100%;
-  height: 100%;
+  height: auto;
   min-width: 0;
 }
 
@@ -711,7 +713,7 @@ thead th {
   fill: #f0d8dd;
   font-size: 15px;
   font-weight: 600;
-  letter-spacing: 0.03em;
+  letter-spacing: 0;
 }
 
 .skilltree-area-node {
@@ -729,7 +731,7 @@ thead th {
   fill: #d5d9e6;
   font-size: 12px;
   font-weight: 700;
-  letter-spacing: 0.04em;
+  letter-spacing: 0;
 }
 
 .skilltree-topic-group {
@@ -746,25 +748,21 @@ thead th {
 }
 
 .skilltree-leaf-box {
-  fill: rgba(16, 20, 31, 0);
-  stroke: rgba(134, 154, 194, 0);
-  stroke-width: 1;
+  fill: transparent;
+  stroke: transparent;
+  pointer-events: all;
 }
 
 .skilltree-leaf-box.root-zone {
-  fill: rgba(33, 23, 29, 0);
-  stroke: rgba(198, 110, 126, 0);
+  fill: transparent;
+  stroke: transparent;
 }
 
 .skilltree-leaf-title {
   fill: #ececf2;
-  font-size: 12px;
+  font-size: 11.5px;
   font-weight: 600;
-}
-
-.skilltree-leaf-meta {
-  fill: #9aa3b2;
-  font-size: 11px;
+  pointer-events: none;
 }
 
 .skilltree-topic-group:hover .skilltree-topic-orb {

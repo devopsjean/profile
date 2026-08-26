@@ -20,7 +20,7 @@
     "title": "Roadmap",
     "type": "folder",
     "children": [
-      { "title": "Mindmap Demo", "type": "page", "slug": "roadmap-mindmap" }
+      { "title": "Mindmap", "type": "page", "slug": "roadmap-mindmap" }
     ]
   }
 ]

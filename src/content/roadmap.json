@@ -2,16 +2,34 @@
   {
     "id": "lfs162",
     "area": "DevOps & SRE",
-    "topic": "Introduction to DevOps and Site Reliability Engineering (LFS162)",
+    "topic": "LFS162 DevOps and SRE completed",
     "status": "Done",
     "progress": 100,
     "priority": "High",
-    "link": "https://training.linuxfoundation.org/training/introduction-to-devops-and-site-reliability-engineering-lfs162/"
+    "link": "https://www.credly.com/org/the-linux-foundation/badge/lfs162-introduction-to-devops-and-site-reliability-"
+  },
+  {
+    "id": "lfs169",
+    "area": "DevOps & SRE",
+    "topic": "LFS169 GitOps completed",
+    "status": "Done",
+    "progress": 100,
+    "priority": "High",
+    "link": "https://www.credly.com/org/the-linux-foundation/badge/lfs169-introduction-to-gitops"
+  },
+  {
+    "id": "lfs180",
+    "area": "DevOps & SRE",
+    "topic": "LFS180 DevSecOps enrolled",
+    "status": "Studying",
+    "progress": 25,
+    "priority": "Medium",
+    "link": "https://openprofile.dev/profile/devopsjean"
   },
   {
     "id": "sli-slo-basics",
     "area": "DevOps & SRE",
-    "topic": "SLI / SLO / Error Budget Fundamentals",
+    "topic": "SLI / SLO / Error Budget fundamentals",
     "status": "Studying",
     "progress": 65,
     "priority": "High",
@@ -20,16 +38,187 @@
   {
     "id": "incident-playbook",
     "area": "DevOps & SRE",
-    "topic": "Incident Response Playbook Design",
+    "topic": "Incident response playbook design",
     "status": "Studying",
     "progress": 45,
     "priority": "Medium",
     "link": "https://sre.google/sre-book/handling-overload/"
   },
   {
+    "id": "lfs148",
+    "area": "Observability",
+    "topic": "LFS148 OpenTelemetry completed",
+    "status": "Done",
+    "progress": 100,
+    "priority": "High",
+    "link": "https://www.credly.com/org/the-linux-foundation/badge/lfs148-getting-started-with-opentelemetry"
+  },
+  {
+    "id": "prometheus-grafana",
+    "area": "Observability",
+    "topic": "Prometheus and Grafana deep dive",
+    "status": "Studying",
+    "progress": 40,
+    "priority": "Medium",
+    "link": "https://prometheus.io/docs/introduction/overview/"
+  },
+  {
+    "id": "lfs101",
+    "area": "Linux & Systems",
+    "topic": "LFS101 Linux completed",
+    "status": "Done",
+    "progress": 100,
+    "priority": "High",
+    "link": "https://www.credly.com/org/the-linux-foundation/badge/lfs101-introduction-to-linux"
+  },
+  {
+    "id": "lfs207",
+    "area": "Linux & Systems",
+    "topic": "LFS207 Linux administration completed",
+    "status": "Done",
+    "progress": 100,
+    "priority": "High",
+    "link": "https://www.credly.com/org/the-linux-foundation/badge/lfs207-linux-system-administration-essentials"
+  },
+  {
+    "id": "lfcs",
+    "area": "Linux & Systems",
+    "topic": "LFCS certification exam enrolled",
+    "status": "Studying",
+    "progress": 35,
+    "priority": "High",
+    "link": "https://openprofile.dev/profile/devopsjean"
+  },
+  {
+    "id": "lfel1009",
+    "area": "IaC & GitOps",
+    "topic": "LFEL1009 OpenTofu completed",
+    "status": "Done",
+    "progress": 100,
+    "priority": "High",
+    "link": "https://www.credly.com/org/the-linux-foundation/badge/lfel1009-getting-started-with-opentofu"
+  },
+  {
+    "id": "terraform-modules",
+    "area": "IaC & GitOps",
+    "topic": "Reusable Terraform modules",
+    "status": "Studying",
+    "progress": 55,
+    "priority": "High",
+    "link": "https://developer.hashicorp.com/terraform/language/modules"
+  },
+  {
+    "id": "argo-gitops",
+    "area": "IaC & GitOps",
+    "topic": "Argo CD GitOps practice",
+    "status": "Studying",
+    "progress": 35,
+    "priority": "Medium",
+    "link": "https://argo-cd.readthedocs.io/en/stable/"
+  },
+  {
+    "id": "lfd102",
+    "area": "Open Source & Security",
+    "topic": "LFD102 OSS development completed",
+    "status": "Done",
+    "progress": 100,
+    "priority": "Medium",
+    "link": "https://www.credly.com/org/the-linux-foundation/badge/lfd102-a-beginner-s-guide-to-open-source-software-development"
+  },
+  {
+    "id": "lfc102",
+    "area": "Open Source & Security",
+    "topic": "LFC102 Inclusive OSS completed",
+    "status": "Done",
+    "progress": 100,
+    "priority": "Medium",
+    "link": "https://www.credly.com/org/the-linux-foundation/badge/lfc102-inclusive-open-source-community-orientation"
+  },
+  {
+    "id": "lfc104",
+    "area": "Open Source & Security",
+    "topic": "LFC104 OSS ethics completed",
+    "status": "Done",
+    "progress": 100,
+    "priority": "Medium",
+    "link": "https://www.credly.com/org/the-linux-foundation/badge/lfc104-ethics-for-open-source-development"
+  },
+  {
+    "id": "lfc108",
+    "area": "Open Source & Security",
+    "topic": "LFC108 Cybersecurity completed",
+    "status": "Done",
+    "progress": 100,
+    "priority": "High",
+    "link": "https://www.credly.com/org/the-linux-foundation/badge/lfc108-cybersecurity-essentials"
+  },
+  {
+    "id": "lfc191",
+    "area": "Open Source & Security",
+    "topic": "LFC191 OSS licensing completed",
+    "status": "Done",
+    "progress": 100,
+    "priority": "Medium",
+    "link": "https://www.credly.com/org/the-linux-foundation/badge/lfc191-open-source-licensing-basics-for-software-developers"
+  },
+  {
+    "id": "lfc193",
+    "area": "Open Source & Security",
+    "topic": "LFC193 Compliance management completed",
+    "status": "Done",
+    "progress": 100,
+    "priority": "Medium",
+    "link": "https://www.credly.com/org/the-linux-foundation/badge/lfc193-introduction-to-open-source-licensing-compliance-management"
+  },
+  {
+    "id": "lfc194",
+    "area": "Open Source & Security",
+    "topic": "LFC194 License compliance completed",
+    "status": "Done",
+    "progress": 100,
+    "priority": "Medium",
+    "link": "https://www.credly.com/org/the-linux-foundation/badge/lfc194-implementing-open-source-license-compliance-management"
+  },
+  {
+    "id": "lfs179",
+    "area": "Cloud Native Projects",
+    "topic": "LFS179 Nephio enrolled",
+    "status": "Studying",
+    "progress": 25,
+    "priority": "Medium",
+    "link": "https://openprofile.dev/profile/devopsjean"
+  },
+  {
+    "id": "lfs140",
+    "area": "Cloud Native Projects",
+    "topic": "LFS140 OpenFeature enrolled",
+    "status": "Studying",
+    "progress": 25,
+    "priority": "Medium",
+    "link": "https://openprofile.dev/profile/devopsjean"
+  },
+  {
+    "id": "kubecost",
+    "area": "Cloud Native FinOps",
+    "topic": "Kubecost practitioner completed",
+    "status": "Done",
+    "progress": 100,
+    "priority": "Medium",
+    "link": "https://www.credly.com/org/ibm/badge/practitioner-kubecost"
+  },
+  {
+    "id": "pcep",
+    "area": "Python",
+    "topic": "PCEP acquired 2026-03-26",
+    "status": "Done",
+    "progress": 100,
+    "priority": "High",
+    "link": "https://www.credly.com/org/python-institute/badge/pcep-30-02-pcep-certified-entry-level-python-progra"
+  },
+  {
     "id": "python-essentials",
     "area": "Python",
-    "topic": "Python Essentials 1",
+    "topic": "Python Essentials 1 completed",
     "status": "Done",
     "progress": 100,
     "priority": "High",
@@ -38,16 +227,16 @@
   {
     "id": "pcap",
     "area": "Python",
-    "topic": "PCAP Preparation",
+    "topic": "PCAP preparation",
     "status": "Studying",
-    "progress": 58,
+    "progress": 55,
     "priority": "High",
     "link": "https://pythoninstitute.org/pcap"
   },
   {
     "id": "math-modular",
     "area": "Mathematics",
-    "topic": "Modular Arithmetic",
+    "topic": "Modular arithmetic",
     "status": "Studying",
     "progress": 60,
     "priority": "Medium",
@@ -56,46 +245,10 @@
   {
     "id": "math-division",
     "area": "Mathematics",
-    "topic": "Division Algorithm",
+    "topic": "Division algorithm",
     "status": "Not Started",
     "progress": 0,
     "priority": "Low",
     "link": "https://en.wikipedia.org/wiki/Euclidean_division"
-  },
-  {
-    "id": "k8s-cka",
-    "area": "CNCF / Kubernetes",
-    "topic": "CKA Domain: Cluster Architecture",
-    "status": "Studying",
-    "progress": 52,
-    "priority": "High",
-    "link": "https://www.cncf.io/certification/cka/"
-  },
-  {
-    "id": "k8s-observability",
-    "area": "CNCF / Kubernetes",
-    "topic": "Prometheus and Grafana Deep Dive",
-    "status": "Studying",
-    "progress": 40,
-    "priority": "Medium",
-    "link": "https://prometheus.io/docs/introduction/overview/"
-  },
-  {
-    "id": "terraform-modules",
-    "area": "IaC",
-    "topic": "Reusable Terraform Modules",
-    "status": "Studying",
-    "progress": 55,
-    "priority": "High",
-    "link": "https://developer.hashicorp.com/terraform/language/modules"
-  },
-  {
-    "id": "gitops-argo",
-    "area": "IaC",
-    "topic": "GitOps with Argo CD",
-    "status": "Not Started",
-    "progress": 0,
-    "priority": "Medium",
-    "link": "https://argo-cd.readthedocs.io/en/stable/"
   }
 ]

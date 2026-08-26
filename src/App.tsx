@@ -49,7 +49,7 @@ type SkillLeafLayout = {
   id: string
   clusterId: string
   topic: string
-  displayTopic: string
+  displayLabel: string
   status: RoadmapStatus
   progress: number
   link: string
@@ -80,6 +80,7 @@ type SkillAreaLayout = {
   area: string
   x: number
   y: number
+  boxWidth: number
   color: string
   side: -1 | 1
   bandTop: number
@@ -125,7 +126,7 @@ function Workspace() {
     if (slug === 'experience-timeline') return 'Profile/Timeline'
     if (slug === 'experience-chart') return 'Profile/Timetable'
     if (projectPage) return `Projects/${projectPage.title}`
-    if (slug === 'roadmap-mindmap') return 'Roadmap/Mindmap Demo'
+    if (slug === 'roadmap-mindmap') return 'Roadmap/Mindmap'
     return 'Profile'
   })
   const [theme, setTheme] = useState<ThemeMode>(() => {
@@ -655,10 +656,10 @@ function RoadmapPage({ items }: { items: RoadmapItem[] }) {
     const node = treeScrollRef.current
     if (!node) return
     requestAnimationFrame(() => {
-      node.scrollTop = 0
-      node.scrollLeft = 0
+      const rootYRatio = (layout.root.y - layout.viewBox.y) / layout.viewBox.height
+      node.scrollTop = Math.max(0, node.scrollHeight * rootYRatio - node.clientHeight * 0.58)
     })
-  }, [])
+  }, [layout])
 
   return (
     <section className="skilltree-layout">
@@ -734,7 +735,7 @@ function RoadmapPage({ items }: { items: RoadmapItem[] }) {
 
             {layout.areas.map((area) => (
               <g key={area.area} transform={`translate(${area.x}, ${area.y})`}>
-                <rect x="-92" y="-16" width="184" height="32" rx="16" className="skilltree-area-node" />
+                <rect x={-area.boxWidth / 2} y="-16" width={area.boxWidth} height="32" rx="8" className="skilltree-area-node" />
                 <text textAnchor="middle" y="5" className="skilltree-area-label">
                   {area.area}
                 </text>
@@ -743,7 +744,7 @@ function RoadmapPage({ items }: { items: RoadmapItem[] }) {
 
             {layout.rootAreas.map((area) => (
               <g key={`root-node-${area.area}`} transform={`translate(${area.x}, ${area.y})`}>
-                <rect x="-92" y="-16" width="184" height="32" rx="16" className="skilltree-area-node root-zone" />
+                <rect x={-area.boxWidth / 2} y="-16" width={area.boxWidth} height="32" rx="8" className="skilltree-area-node root-zone" />
                 <text textAnchor="middle" y="5" className="skilltree-area-label">
                   {area.area}
                 </text>
@@ -753,14 +754,12 @@ function RoadmapPage({ items }: { items: RoadmapItem[] }) {
             {layout.topics.map((topic) => (
               <a key={topic.id} href={topic.link} target="_blank" rel="noreferrer">
                 <g className="skilltree-topic-group">
+                  <title>{`${topic.topic} | ${topic.status} ${topic.progress}%`}</title>
                   <circle cx={topic.boxAnchorX} cy={topic.boxCenterY} r={topic.radius} className="skilltree-topic-orb" style={{ stroke: topic.statusColor }} />
                   <circle cx={topic.boxAnchorX} cy={topic.boxCenterY} r={Math.max(topic.radius - 6, 7)} className="skilltree-topic-core" style={{ fill: topic.statusColor }} />
-                  <rect x={topic.boxX} y={topic.boxY} width={topic.boxWidth} height={topic.boxHeight} rx="10" className="skilltree-leaf-box" />
-                  <text x={topic.textX} y={topic.boxY + 17} textAnchor={topic.textAnchor} className="skilltree-leaf-title">
-                    {topic.displayTopic}
-                  </text>
-                  <text x={topic.textX} y={topic.boxY + 33} textAnchor={topic.textAnchor} className="skilltree-leaf-meta">
-                    {topic.status} · {topic.progress}%
+                  <rect x={topic.boxX} y={topic.boxY} width={topic.boxWidth} height={topic.boxHeight} rx="8" className="skilltree-leaf-box" />
+                  <text x={topic.textX} y={topic.boxCenterY + 4} textAnchor={topic.textAnchor} className="skilltree-leaf-title">
+                    {topic.displayLabel}
                   </text>
                 </g>
               </a>
@@ -769,14 +768,12 @@ function RoadmapPage({ items }: { items: RoadmapItem[] }) {
             {layout.rootTopics.map((topic) => (
               <a key={`root-${topic.id}`} href={topic.link} target="_blank" rel="noreferrer">
                 <g className="skilltree-topic-group">
+                  <title>{`${topic.topic} | ${topic.status} ${topic.progress}%`}</title>
                   <circle cx={topic.boxAnchorX} cy={topic.boxCenterY} r={topic.radius} className="skilltree-topic-orb" style={{ stroke: topic.statusColor }} />
                   <circle cx={topic.boxAnchorX} cy={topic.boxCenterY} r={Math.max(topic.radius - 6, 7)} className="skilltree-topic-core" style={{ fill: topic.statusColor }} />
-                  <rect x={topic.boxX} y={topic.boxY} width={topic.boxWidth} height={topic.boxHeight} rx="10" className="skilltree-leaf-box root-zone" />
-                  <text x={topic.textX} y={topic.boxY + 17} textAnchor={topic.textAnchor} className="skilltree-leaf-title">
-                    {topic.displayTopic}
-                  </text>
-                  <text x={topic.textX} y={topic.boxY + 33} textAnchor={topic.textAnchor} className="skilltree-leaf-meta">
-                    {topic.status} · {topic.progress}%
+                  <rect x={topic.boxX} y={topic.boxY} width={topic.boxWidth} height={topic.boxHeight} rx="8" className="skilltree-leaf-box root-zone" />
+                  <text x={topic.textX} y={topic.boxCenterY + 4} textAnchor={topic.textAnchor} className="skilltree-leaf-title">
+                    {topic.displayLabel}
                   </text>
                 </g>
               </a>
@@ -883,6 +880,9 @@ function buildRoadmapSkillTreeLayout(groups: Array<{ area: string; tasks: Roadma
     Studying: '#f8af4b',
     'Not Started': '#8892a8',
   }
+  const leafBoxHeight = 22
+  const leafRowStep = 34
+  const leafTextPadding = 6
 
   const rootZoneAreas = new Set(['Mathematics', 'Mathmatics', 'Python'])
   const lowerGroups = groups.filter((group) => rootZoneAreas.has(group.area)).sort((a, b) => a.area.localeCompare(b.area))
@@ -890,10 +890,10 @@ function buildRoadmapSkillTreeLayout(groups: Array<{ area: string; tasks: Roadma
     .filter((group) => !rootZoneAreas.has(group.area))
     .sort((a, b) => b.tasks.length - a.tasks.length || a.area.localeCompare(b.area))
 
-  const width = 1720
-  const height = 1220
+  const width = 1640
+  const height = 1720
   const rootX = width / 2
-  const rootY = height / 2 + 10
+  const rootY = 1220
 
   const areas: SkillAreaLayout[] = []
   const rootAreas: SkillAreaLayout[] = []
@@ -909,8 +909,8 @@ function buildRoadmapSkillTreeLayout(groups: Array<{ area: string; tasks: Roadma
     let side: -1 | 1 = base.x <= rootX ? -1 : 1
     if (Math.abs(base.x - rootX) < 24) side = idx % 2 === 0 ? -1 : 1
 
-    const rowStep = 54
-    const bandHeight = Math.max(108, group.tasks.length * rowStep + 36)
+    const rowStep = leafRowStep
+    const bandHeight = Math.max(92, group.tasks.length * rowStep + 30)
     let bandBottom = base.y - 18
     let bandTop = bandBottom - bandHeight
     const sideIntervals = upperIntervalsBySide.get(side) ?? []
@@ -923,22 +923,23 @@ function buildRoadmapSkillTreeLayout(groups: Array<{ area: string; tasks: Roadma
 
     const color = areaPalette[idx % areaPalette.length]
     const areaY = base.y + shift
-    const area = { key: group.area, area: group.area, x: base.x, y: areaY, color, side, bandTop, bandBottom }
+    const boxWidth = areaBoxWidth(group.area)
+    const area = { key: group.area, area: group.area, x: base.x, y: areaY, boxWidth, color, side, bandTop, bandBottom }
     areas.push(area)
 
     group.tasks.forEach((task, taskIndex) => {
       const lane = taskIndex % 2 === 0 ? -1 : 1
       const depth = Math.floor(taskIndex / 2)
-      const pointY = bandTop + 20 + taskIndex * rowStep
-      const pointX = base.x + side * (88 + depth * 12) + lane * 6
-      const boxWidth = Math.max(238, Math.min(320, 108 + task.topic.length * 3.9))
-      const boxHeight = 40
-      const boxX = side > 0 ? pointX + 16 : pointX - 16 - boxWidth
+      const pointY = bandTop + 14 + taskIndex * rowStep
+      const pointX = base.x + side * (90 + depth * 11) + lane * 5
+      const displayLabel = buildSkillTreeLeafLabel(task)
+      const leafBoxWidth = Math.max(206, Math.min(292, leafTextPadding * 2 + displayLabel.length * 5.9))
+      const boxX = side > 0 ? pointX + 14 : pointX - 14 - leafBoxWidth
       topics.push({
         id: task.id,
         clusterId: area.key,
         topic: task.topic,
-        displayTopic: shortenSkillLabel(task.topic, 40),
+        displayLabel,
         status: task.status,
         progress: task.progress,
         link: task.link,
@@ -951,17 +952,17 @@ function buildRoadmapSkillTreeLayout(groups: Array<{ area: string; tasks: Roadma
         statusColor: statusColor[task.status],
         radius: 10 + Math.round(task.progress / 26),
         zone: 'upper',
-        boxWidth,
-        boxHeight,
-        baseBoxY: pointY - boxHeight / 2,
+        boxWidth: leafBoxWidth,
+        boxHeight: leafBoxHeight,
+        baseBoxY: pointY - leafBoxHeight / 2,
         boxX,
-        boxY: pointY - boxHeight / 2,
+        boxY: pointY - leafBoxHeight / 2,
         boxCenterY: pointY,
-        boxAnchorX: side > 0 ? boxX : boxX + boxWidth,
-        textX: side > 0 ? boxX + 10 : boxX + boxWidth - 10,
+        boxAnchorX: side > 0 ? boxX : boxX + leafBoxWidth,
+        textX: side > 0 ? boxX + leafTextPadding : boxX + leafBoxWidth - leafTextPadding,
         textAnchor: side > 0 ? 'start' : 'end',
         minY: bandTop + 4,
-        maxY: bandBottom - boxHeight - 4,
+        maxY: bandBottom - leafBoxHeight - 4,
       })
     })
   })
@@ -975,8 +976,8 @@ function buildRoadmapSkillTreeLayout(groups: Array<{ area: string; tasks: Roadma
     const base = polarPoint(rootX, rootY, radius, angle)
     const side: -1 | 1 = base.x <= rootX ? -1 : 1
 
-    const rowStep = 54
-    const bandHeight = Math.max(108, group.tasks.length * rowStep + 36)
+    const rowStep = leafRowStep
+    const bandHeight = Math.max(92, group.tasks.length * rowStep + 30)
     let bandTop = base.y + 18
     let bandBottom = bandTop + bandHeight
     const sideIntervals = lowerIntervalsBySide.get(side) ?? []
@@ -989,22 +990,23 @@ function buildRoadmapSkillTreeLayout(groups: Array<{ area: string; tasks: Roadma
 
     const color = areaPalette[(idx + upperGroups.length) % areaPalette.length]
     const areaY = base.y + shift
-    const area = { key: `root:${group.area}`, area: group.area, x: base.x, y: areaY, color, side, bandTop, bandBottom }
+    const boxWidth = areaBoxWidth(group.area)
+    const area = { key: `root:${group.area}`, area: group.area, x: base.x, y: areaY, boxWidth, color, side, bandTop, bandBottom }
     rootAreas.push(area)
 
     group.tasks.forEach((task, taskIndex) => {
       const lane = taskIndex % 2 === 0 ? -1 : 1
       const depth = Math.floor(taskIndex / 2)
-      const pointY = bandTop + 20 + taskIndex * rowStep
-      const pointX = base.x + side * (84 + depth * 12) + lane * 6
-      const boxWidth = Math.max(238, Math.min(320, 108 + task.topic.length * 3.9))
-      const boxHeight = 40
-      const boxX = side > 0 ? pointX + 16 : pointX - 16 - boxWidth
+      const pointY = bandTop + 14 + taskIndex * rowStep
+      const pointX = base.x + side * (88 + depth * 11) + lane * 5
+      const displayLabel = buildSkillTreeLeafLabel(task)
+      const leafBoxWidth = Math.max(206, Math.min(292, leafTextPadding * 2 + displayLabel.length * 5.9))
+      const boxX = side > 0 ? pointX + 14 : pointX - 14 - leafBoxWidth
       rootTopics.push({
         id: task.id,
         clusterId: area.key,
         topic: task.topic,
-        displayTopic: shortenSkillLabel(task.topic, 40),
+        displayLabel,
         status: task.status,
         progress: task.progress,
         link: task.link,
@@ -1017,50 +1019,111 @@ function buildRoadmapSkillTreeLayout(groups: Array<{ area: string; tasks: Roadma
         statusColor: statusColor[task.status],
         radius: 10 + Math.round(task.progress / 26),
         zone: 'root',
-        boxWidth,
-        boxHeight,
-        baseBoxY: pointY - boxHeight / 2,
+        boxWidth: leafBoxWidth,
+        boxHeight: leafBoxHeight,
+        baseBoxY: pointY - leafBoxHeight / 2,
         boxX,
-        boxY: pointY - boxHeight / 2,
+        boxY: pointY - leafBoxHeight / 2,
         boxCenterY: pointY,
-        boxAnchorX: side > 0 ? boxX : boxX + boxWidth,
-        textX: side > 0 ? boxX + 10 : boxX + boxWidth - 10,
+        boxAnchorX: side > 0 ? boxX : boxX + leafBoxWidth,
+        textX: side > 0 ? boxX + leafTextPadding : boxX + leafBoxWidth - leafTextPadding,
         textAnchor: side > 0 ? 'start' : 'end',
         minY: bandTop + 4,
-        maxY: bandBottom - boxHeight - 4,
+        maxY: bandBottom - leafBoxHeight - 4,
       })
     })
   })
 
-  resolveLeafOverlap(topics, buildAreaLaneBlockers(areas), 240)
-  resolveLeafOverlap(rootTopics, buildAreaLaneBlockers(rootAreas), 240)
+  stackUpperAreaClusters(areas, topics, 52, 34)
+  stackRootAreaClusters(rootAreas, rootTopics, rootY + 104, 34)
+  resolveLeafOverlap(topics, buildAreaLaneBlockers(areas), 220, leafTextPadding)
+  resolveLeafOverlap(rootTopics, buildAreaLaneBlockers(rootAreas), 220, leafTextPadding)
   compactClustersTowardCore(areas, topics, { x: rootX, y: rootY }, {
     width,
     height,
     zone: 'upper',
     minRadius: 124,
-    zoneGap: 106,
-    rootKeepout: 98,
-    clusterGap: 8,
-    boundaryPadding: 12,
+    zoneGap: 110,
+    rootKeepout: 112,
+    clusterGap: 22,
+    boundaryPadding: 20,
   })
   compactClustersTowardCore(rootAreas, rootTopics, { x: rootX, y: rootY }, {
     width,
     height,
     zone: 'root',
     minRadius: 92,
-    zoneGap: 84,
-    rootKeepout: 98,
-    clusterGap: 8,
-    boundaryPadding: 12,
+    zoneGap: 94,
+    rootKeepout: 112,
+    clusterGap: 22,
+    boundaryPadding: 20,
   })
-  separateAreaNodes(areas, topics, { x: rootX, y: rootY }, { zone: 'upper', zoneGap: 106, height, boundaryPadding: 12 })
-  separateAreaNodes(rootAreas, rootTopics, { x: rootX, y: rootY }, { zone: 'root', zoneGap: 84, height, boundaryPadding: 12 })
-  resolveLeafOverlap(topics, buildAreaLaneBlockers(areas), 240)
-  resolveLeafOverlap(rootTopics, buildAreaLaneBlockers(rootAreas), 240)
+  separateAreaNodes(areas, topics, { x: rootX, y: rootY }, { zone: 'upper', zoneGap: 110, height, boundaryPadding: 20 })
+  separateAreaNodes(rootAreas, rootTopics, { x: rootX, y: rootY }, { zone: 'root', zoneGap: 94, height, boundaryPadding: 20 })
+  resolveLeafOverlap(topics, buildAreaLaneBlockers(areas), 220, leafTextPadding)
+  resolveLeafOverlap(rootTopics, buildAreaLaneBlockers(rootAreas), 220, leafTextPadding)
   const viewBox = computeSkillTreeViewBox({ width, height, root: { x: rootX, y: rootY }, areas, rootAreas, topics, rootTopics })
 
   return { width, height, root: { x: rootX, y: rootY }, areas, topics, rootAreas, rootTopics, viewBox }
+}
+
+function stackUpperAreaClusters(areas: SkillAreaLayout[], leaves: SkillLeafLayout[], topPadding: number, gap: number) {
+  const leavesByCluster = groupLeavesByCluster(leaves)
+  ;([-1, 1] as const).forEach((side) => {
+    let cursor = topPadding
+    areas
+      .filter((area) => area.side === side)
+      .sort((a, b) => a.bandTop - b.bandTop)
+      .forEach((area) => {
+        translateAreaCluster(area, leavesByCluster.get(area.key) ?? [], 0, cursor - area.bandTop)
+        cursor = area.bandBottom + gap
+      })
+  })
+}
+
+function stackRootAreaClusters(areas: SkillAreaLayout[], leaves: SkillLeafLayout[], startY: number, gap: number) {
+  const leavesByCluster = groupLeavesByCluster(leaves)
+  ;([-1, 1] as const).forEach((side) => {
+    let cursor = startY
+    areas
+      .filter((area) => area.side === side)
+      .sort((a, b) => a.y - b.y)
+      .forEach((area) => {
+        translateAreaCluster(area, leavesByCluster.get(area.key) ?? [], 0, cursor - area.y)
+        cursor = area.bandBottom + gap
+      })
+  })
+}
+
+function groupLeavesByCluster(leaves: SkillLeafLayout[]) {
+  const leavesByCluster = new Map<string, SkillLeafLayout[]>()
+  leaves.forEach((leaf) => {
+    const cluster = leavesByCluster.get(leaf.clusterId) ?? []
+    cluster.push(leaf)
+    leavesByCluster.set(leaf.clusterId, cluster)
+  })
+  return leavesByCluster
+}
+
+function translateAreaCluster(area: SkillAreaLayout, leaves: SkillLeafLayout[], dx: number, dy: number) {
+  area.x += dx
+  area.y += dy
+  area.bandTop += dy
+  area.bandBottom += dy
+  leaves.forEach((leaf) => {
+    leaf.x += dx
+    leaf.y += dy
+    leaf.areaX += dx
+    leaf.areaY += dy
+    leaf.baseBoxY += dy
+    leaf.boxX += dx
+    leaf.boxY += dy
+    leaf.boxCenterY += dy
+    leaf.boxAnchorX += dx
+    leaf.textX += dx
+    leaf.minY += dy
+    leaf.maxY += dy
+  })
 }
 
 function compactClustersTowardCore(
@@ -1133,24 +1196,7 @@ function compactClustersTowardCore(
       }
       if (collides) continue
 
-      cluster.area.x += dx
-      cluster.area.y += dy
-      cluster.area.bandTop += dy
-      cluster.area.bandBottom += dy
-      cluster.leaves.forEach((leaf) => {
-        leaf.x += dx
-        leaf.y += dy
-        leaf.areaX += dx
-        leaf.areaY += dy
-        leaf.baseBoxY += dy
-        leaf.boxX += dx
-        leaf.boxY += dy
-        leaf.boxCenterY += dy
-        leaf.boxAnchorX += dx
-        leaf.textX += dx
-        leaf.minY += dy
-        leaf.maxY += dy
-      })
+      translateAreaCluster(cluster.area, cluster.leaves, dx, dy)
       cluster.bounds = nextBounds
       moved = true
     }
@@ -1278,8 +1324,7 @@ function computeSkillTreeViewBox({
     include(topic.areaX, topic.areaY, 24)
     include(topic.boxAnchorX, topic.boxCenterY, topic.radius + 4)
     include(topic.boxX + topic.boxWidth / 2, topic.boxY + topic.boxHeight / 2, Math.max(topic.boxWidth, topic.boxHeight) / 2 + 6)
-    include(topic.textX, topic.boxY + 18, 14)
-    include(topic.textX, topic.boxY + 34, 14)
+    include(topic.textX, topic.boxCenterY + 4, 14)
     include(topic.boxAnchorX - topic.side * 54, topic.boxCenterY + (topic.zone === 'upper' ? 48 : -42), 18)
   })
 
@@ -1300,8 +1345,8 @@ function computeSkillTreeViewBox({
 }
 
 function getClusterBounds(area: SkillAreaLayout, leaves: SkillLeafLayout[]) {
-  let minX = area.x - 92
-  let maxX = area.x + 92
+  let minX = area.x - area.boxWidth / 2
+  let maxX = area.x + area.boxWidth / 2
   let minY = area.y - 16
   let maxY = area.y + 16
 
@@ -1353,6 +1398,7 @@ function resolveLeafOverlap(
   nodes: SkillLeafLayout[],
   blockers: Map<string, Array<{ start: number; end: number }>>,
   maxShift: number,
+  textPadding: number,
 ) {
   const laneGap = 12
   const occupied: Array<{ top: number; bottom: number; left: number; right: number }> = []
@@ -1364,7 +1410,7 @@ function resolveLeafOverlap(
     node.boxY = candidateY
     node.boxCenterY = candidateY + node.boxHeight / 2
     node.boxAnchorX = node.side > 0 ? node.boxX : node.boxX + node.boxWidth
-    node.textX = node.side > 0 ? node.boxX + 10 : node.boxX + node.boxWidth - 10
+    node.textX = node.side > 0 ? node.boxX + textPadding : node.boxX + node.boxWidth - textPadding
     occupied.push({
       top: node.boxY,
       bottom: node.boxY + node.boxHeight,
@@ -1452,6 +1498,17 @@ function buildAreaLaneBlockers(
   return blockers
 }
 
+function areaBoxWidth(label: string) {
+  return Math.max(184, Math.min(252, 76 + label.length * 7.4))
+}
+
+function buildSkillTreeLeafLabel(item: RoadmapItem) {
+  const statusLabel = `${item.status} (${item.progress}%)`
+  const maxLength = 38
+  const availableTopicLength = Math.max(12, maxLength - statusLabel.length - 3)
+  return `${shortenText(item.topic, availableTopicLength)} - ${statusLabel}`
+}
+
 function buildCenteredAngles(centerDeg: number, spreadDeg: number, count: number) {
   if (count <= 1) return [centerDeg]
   const start = centerDeg - spreadDeg / 2
@@ -1468,9 +1525,9 @@ function clamp(value: number, min: number, max: number) {
   return Math.max(min, Math.min(max, value))
 }
 
-function shortenSkillLabel(text: string, max = 46) {
+function shortenText(text: string, max: number) {
   if (text.length <= max) return text
-  return `${text.slice(0, max - 1)}…`
+  return `${text.slice(0, Math.max(0, max - 3))}...`
 }
 
 function GitHubIcon() {
