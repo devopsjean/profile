@@ -1,6 +1,8 @@
-import { useEffect, useMemo, useRef, useState, type CSSProperties, type MouseEvent, type PointerEvent as ReactPointerEvent } from 'react'
+import { isValidElement, useEffect, useMemo, useRef, useState, type CSSProperties, type MouseEvent, type ReactNode, type PointerEvent as ReactPointerEvent } from 'react'
 import { Navigate, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom'
 import ReactMarkdown from 'react-markdown'
+import rehypeRaw from 'rehype-raw'
+import rehypeSanitize, { defaultSchema } from 'rehype-sanitize'
 import remarkGfm from 'remark-gfm'
 import navData from './content/nav.json'
 import profileData from './content/profile.json'
@@ -147,6 +149,13 @@ const roadmapItems = roadmapData as RoadmapItem[]
 const roadmapSavedLayout = roadmapLayoutData as RoadmapSavedLayout
 const sidebarVersion = `${__APP_RELEASE_STAGE__} v${__APP_BUILD_VERSION__}`
 const sidebarBuild = `build ${__APP_BUILD_HASH__}`
+const markdownHtmlSchema = {
+  ...defaultSchema,
+  attributes: {
+    ...defaultSchema.attributes,
+    details: [...(defaultSchema.attributes?.details ?? []), 'open'],
+  },
+}
 const projectMarkdownPages: Record<string, ProjectMarkdownConfig> = {
   'sre-mini-project': {
     title: 'SRE-mini-project',
@@ -970,6 +979,30 @@ function ProjectMarkdownPage({ project }: { project: ProjectMarkdownConfig }) {
   const [markdown, setMarkdown] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
+  const markdownComponents = useMemo(
+    () => ({
+      img: ({ src, alt }: { src?: string; alt?: string }) => (
+        <img src={resolveReadmeUrl(src, project.repoRawBase, project.repoBlobBase, true)} alt={alt ?? ''} loading="lazy" />
+      ),
+      a: ({ href, children }: { href?: string; children?: ReactNode }) => (
+        <a href={resolveReadmeUrl(href, project.repoRawBase, project.repoBlobBase, false)} target="_blank" rel="noreferrer">
+          {children}
+        </a>
+      ),
+      pre: ({ children }: { children?: ReactNode }) => {
+        const child = Array.isArray(children) ? children[0] : children
+        if (isValidElement<{ className?: string; children?: ReactNode }>(child)) {
+          const className = child.props.className ?? ''
+          if (/\blanguage-mermaid\b/.test(className)) {
+            return <MermaidDiagram chart={reactNodeToText(child.props.children).trim()} />
+          }
+        }
+
+        return <pre>{children}</pre>
+      },
+    }),
+    [project.repoBlobBase, project.repoRawBase],
+  )
 
   useEffect(() => {
     const controller = new AbortController()
@@ -999,23 +1032,98 @@ function ProjectMarkdownPage({ project }: { project: ProjectMarkdownConfig }) {
       {error && <p>{error}</p>}
       {!loading && !error && (
         <div className="markdown-body">
-          <ReactMarkdown
-            remarkPlugins={[remarkGfm]}
-            components={{
-              img: ({ src, alt }) => <img src={resolveReadmeUrl(src, project.repoRawBase, project.repoBlobBase, true)} alt={alt ?? ''} loading="lazy" />,
-              a: ({ href, children }) => (
-                <a href={resolveReadmeUrl(href, project.repoRawBase, project.repoBlobBase, false)} target="_blank" rel="noreferrer">
-                  {children}
-                </a>
-              ),
-            }}
-          >
+          <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw, [rehypeSanitize, markdownHtmlSchema]]} components={markdownComponents}>
             {markdown}
           </ReactMarkdown>
         </div>
       )}
     </section>
   )
+}
+
+let mermaidInitialized = false
+
+function MermaidDiagram({ chart }: { chart: string }) {
+  const [diagramId] = useState(() => `mermaid-${Math.random().toString(36).slice(2)}`)
+  const [renderedSvg, setRenderedSvg] = useState('')
+  const [renderError, setRenderError] = useState<string | null>(null)
+  const source = chart.trim()
+
+  useEffect(() => {
+    let cancelled = false
+    if (!source) return
+
+    const renderDiagram = async () => {
+      try {
+        const { default: mermaid } = await import('mermaid')
+        ensureMermaidInitialized(mermaid)
+        const { svg } = await mermaid.render(diagramId, source)
+        if (cancelled) return
+        setRenderError(null)
+        setRenderedSvg(svg)
+      } catch (error: unknown) {
+        if (cancelled) return
+        setRenderedSvg('')
+        setRenderError(error instanceof Error ? error.message : 'Failed to render Mermaid diagram')
+      }
+    }
+
+    void renderDiagram()
+
+    return () => {
+      cancelled = true
+    }
+  }, [source, diagramId])
+
+  if (!source) return null
+
+  if (renderError) {
+    return (
+      <div className="mermaid-diagram error">
+        <p>{renderError}</p>
+        <pre>
+          <code>{chart}</code>
+        </pre>
+      </div>
+    )
+  }
+
+  if (!renderedSvg) return <div className="mermaid-diagram loading">Rendering diagram...</div>
+
+  return <div className="mermaid-diagram" dangerouslySetInnerHTML={{ __html: renderedSvg }} />
+}
+
+function ensureMermaidInitialized(mermaid: typeof import('mermaid').default) {
+  if (mermaidInitialized) return
+  mermaid.initialize({
+    startOnLoad: false,
+    securityLevel: 'strict',
+    theme: 'dark',
+    flowchart: {
+      defaultRenderer: 'elk',
+      nodeSpacing: 42,
+      rankSpacing: 64,
+      curve: 'basis',
+      wrappingWidth: 160,
+    },
+    themeVariables: {
+      background: '#101116',
+      primaryColor: '#1a1d25',
+      primaryTextColor: '#ececf2',
+      primaryBorderColor: '#536079',
+      lineColor: '#8d98b2',
+      secondaryColor: '#212735',
+      tertiaryColor: '#141821',
+      fontFamily: 'Inter, system-ui, sans-serif',
+    },
+  })
+  mermaidInitialized = true
+}
+
+function reactNodeToText(node: ReactNode): string {
+  if (Array.isArray(node)) return node.map(reactNodeToText).join('')
+  if (node === null || node === undefined || typeof node === 'boolean') return ''
+  return String(node)
 }
 
 function resolveReadmeUrl(

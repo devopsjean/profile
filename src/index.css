@@ -594,8 +594,42 @@ thead th {
   border-radius: 8px;
 }
 
+.markdown-body .mermaid-diagram {
+  overflow: auto;
+  margin: 16px 0;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #101116;
+}
+
+.markdown-body .mermaid-diagram svg {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 0 auto;
+}
+
+.markdown-body .mermaid-diagram.loading {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.markdown-body .mermaid-diagram.error {
+  border-color: rgba(210, 47, 67, 0.55);
+}
+
+.markdown-body .mermaid-diagram.error p {
+  margin: 0 0 10px;
+  color: #ff8f99;
+}
+
 .theme-light .markdown-body pre {
   background: #eef2f8;
+}
+
+.theme-light .markdown-body .mermaid-diagram {
+  background: #f7f9fd;
 }
 
 .markdown-body table {
@@ -607,6 +641,24 @@ thead th {
   max-width: 100%;
   height: auto;
   border-radius: 8px;
+}
+
+.markdown-body details {
+  margin: 16px 0;
+}
+
+.markdown-body summary {
+  cursor: pointer;
+  color: var(--text);
+  display: list-item;
+}
+
+.markdown-body summary strong {
+  font-weight: 700;
+}
+
+.markdown-body details[open] summary {
+  margin-bottom: 10px;
 }
 
 .selected-row td {
